@@ -1,0 +1,6 @@
+|ula
+a => op_and.IN0
+b => op_and.IN1
+op_and <= op_and.DB_MAX_OUTPUT_PORT_TYPE
+
+
