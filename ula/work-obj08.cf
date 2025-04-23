@@ -1,0 +1,10 @@
+v 4
+file . "debouncer.vhdl" "ef9d3658352cb4c4cc6c57a678e575bbc605b035" "20250422211312.274":
+  entity debouncer at 1( 0) + 0 on 125;
+  architecture logic of debouncer at 13( 287) + 0 on 126;
+file . "ula.vhdl" "090d369ef55b02ce032908e02475407c827df631" "20250422211312.277":
+  entity ula at 1( 0) + 0 on 127;
+  architecture behavioral of ula at 18( 361) + 0 on 128;
+file . "tb_ula.vhdl" "b4042b4723e3d788bdb8925035a80474c805dd85" "20250422211312.278":
+  entity tb_ula at 1( 0) + 0 on 129;
+  architecture behavioral of tb_ula at 8( 107) + 0 on 130;

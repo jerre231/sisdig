@@ -1,0 +1,13 @@
+v 4
+file . "tb_adder.vhdl" "c9076ee076d26e1b90b1f5a31c4e611ccceee727" "20250415231704.935":
+  entity tb_adder at 1( 0) + 0 on 71;
+  architecture behavioral of tb_adder at 8( 109) + 0 on 72;
+file . "adder.vhdl" "63be84d6e7f34b4bcd9565b1697cf710144be6a1" "20250415231704.921":
+  entity adder at 1( 0) + 0 on 69;
+  architecture logic of adder at 12( 239) + 0 on 70;
+file . "debouncer.vhdl" "ef9d3658352cb4c4cc6c57a678e575bbc605b035" "20250416131939.305":
+  entity debouncer at 1( 0) + 0 on 83;
+  architecture logic of debouncer at 13( 287) + 0 on 84;
+file . "tb_debouncer.vhdl" "36a6364394b12316b21ce5c9bdccd805ab3f95cb" "20250416131939.320":
+  entity tb_debouncer at 1( 0) + 0 on 85;
+  architecture behavior of tb_debouncer at 8( 125) + 0 on 86;

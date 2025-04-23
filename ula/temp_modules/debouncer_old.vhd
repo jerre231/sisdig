@@ -2,15 +2,15 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.STD_LOGIC_UNSIGNED.ALL;
 
-entity debouncer is
+entity debouncer_old is
     port (
         clock : in STD_LOGIC;
         button_in  : in STD_LOGIC;  -- Noisy button input
         button_out : out STD_LOGIC  -- Debounced button output
     );
-end debouncer;
+end debouncer_old;
 
-architecture logic of debouncer is
+architecture logic of debouncer_old is
     constant clk_freq : INTEGER := 50000000; -- Clock frequency in Hz (50 MHz)
     constant debounce_time : INTEGER := 10; -- Debounce time in milliseconds
     constant debounce_count : INTEGER := (clk_freq / 1000) * debounce_time;
