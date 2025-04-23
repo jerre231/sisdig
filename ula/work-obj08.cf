@@ -1,10 +1,13 @@
 v 4
-file . "debouncer.vhdl" "ef9d3658352cb4c4cc6c57a678e575bbc605b035" "20250422211312.274":
-  entity debouncer at 1( 0) + 0 on 125;
-  architecture logic of debouncer at 13( 287) + 0 on 126;
-file . "ula.vhdl" "090d369ef55b02ce032908e02475407c827df631" "20250422211312.277":
-  entity ula at 1( 0) + 0 on 127;
-  architecture behavioral of ula at 18( 361) + 0 on 128;
-file . "tb_ula.vhdl" "b4042b4723e3d788bdb8925035a80474c805dd85" "20250422211312.278":
-  entity tb_ula at 1( 0) + 0 on 129;
-  architecture behavioral of tb_ula at 8( 107) + 0 on 130;
+file . "tb2_ula.vhdl" "448fa9947e5af077018109d49864444bf3ac8bec" "20250423155643.057":
+  entity tb2_ula at 1( 0) + 0 on 201;
+  architecture sim of tb2_ula at 8( 109) + 0 on 202;
+file . "tb_ula.vhdl" "5c9a2e8d4608dbef2fd1aa59e0303d6f5a23a902" "20250423164149.904":
+  entity tb_ula at 1( 0) + 0 on 231;
+  architecture behavioral of tb_ula at 8( 107) + 0 on 232;
+file . "ula.vhdl" "fed12d8758cfd10b3609b22e9491f3a6bbedde4f" "20250423164149.904":
+  entity ula at 1( 0) + 0 on 229;
+  architecture behavioral of ula at 18( 361) + 0 on 230;
+file . "debouncer.vhdl" "ef9d3658352cb4c4cc6c57a678e575bbc605b035" "20250423164149.903":
+  entity debouncer at 1( 0) + 0 on 227;
+  architecture logic of debouncer at 13( 287) + 0 on 228;

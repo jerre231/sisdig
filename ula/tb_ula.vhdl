@@ -18,24 +18,24 @@ architecture behavioral of tb_ula is
         );
     end component;
 
-    signal I : STD_LOGIC_VECTOR(3 downto 0) := "0000";
-    signal button : STD_LOGIC := '0';
-    signal clk : STD_LOGIC := '0';
+    signal I_tb : STD_LOGIC_VECTOR(3 downto 0) := "0000";
+    signal button_tb : STD_LOGIC := '0';
+    signal clk_tb : STD_LOGIC := '0';
 
-    signal S : STD_LOGIC_VECTOR(3 downto 0);
+    signal S_tb : STD_LOGIC_VECTOR(3 downto 0);
     signal F_Z, F_N, F_C, F_O : STD_LOGIC;
 
     constant clk_period : time := 20 ns;
 
-begin 
+begin
 
     -- Instancia a ULA
     uut: ula
         port map (
-            I => I,
-            button => button,
-            clk => clk,
-            S => S,
+            I => I_tb,
+            button => button_tb,
+            clk => clk_tb,
+            S => S_tb,
             F_Z => F_Z, F_N => F_N, F_C => F_C, F_O => F_O
         );
 
@@ -43,55 +43,50 @@ begin
     clk_process : process
     begin
         while true loop
-            clk <= '0';
+            clk_tb <= '0';
             wait for clk_period / 2;
-            clk <= '1';
+            clk_tb <= '1';
             wait for clk_period / 2;
         end loop;
     end process;
 
-    -- Processo de estímulo
+    -- Processo de estï¿½mulo
     stim: process
     begin
-        assert false report "Iniciando simulação..." severity note;
+        assert false report "Iniciando simulaï¿½ï¿½o..." severity note;
 
         wait for 100 ns;
 
-        button <= '1';
+        button_tb <= '1';
         wait for 5 ms;
-        button <= '0';
+        button_tb <= '0';
         wait for 5 ms;
 
         -- Etapa 1: OP = 000 (ADD)
-        I <= "0000";  -- OP = 000
-        button <= '1';
+        I_tb <= "0000";  -- OP = 000
+        button_tb <= '1';
         wait for 15 ms;
-        button <= '0';
+        button_tb <= '0';
         wait for 5 ms;
 
         -- Etapa 2: A = 4
-        I <= "0100";
-        button <= '1';
+        I_tb <= "0100";
+        button_tb <= '1';
         wait for 15 ms;
-        button <= '0';
+        button_tb <= '0';
         wait for 5 ms;
 
         -- Etapa 3: B = 2
-        I <= "0010";
-        button <= '1';
+        I_tb <= "0010";
+        button_tb <= '1';
         wait for 15 ms;
-        button <= '0';
-        wait for 5 ms;
-
-        button <= '1';
-        wait for 15 ms;
-        button <= '0';
+        button_tb <= '0';
         wait for 5 ms;
 
         -- Etapa 4: resultado aparece, aguardar para observar
         wait for 10 ms;
 
-        assert false report "Fim da simulação com sucesso." severity note;
+        assert false report "Fim da simulaï¿½ï¿½o com sucesso." severity note;
         wait;
     end process;
 
