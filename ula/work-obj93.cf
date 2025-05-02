@@ -1,0 +1,4 @@
+v 4
+file . "debouncer.vhdl" "ef9d3658352cb4c4cc6c57a678e575bbc605b035" "20250429134230.940":
+  entity debouncer at 1( 0) + 0 on 11;
+  architecture logic of debouncer at 13( 287) + 0 on 12;

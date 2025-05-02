@@ -63,7 +63,7 @@ begin
         wait for 5 ms;
 
         -- Etapa 1: OP = 000 (ADD)
-        I_tb <= "0000";  -- OP = 000
+        I_tb <= "0010";  -- OP = 000
         button_tb <= '1';
         wait for 15 ms;
         button_tb <= '0';
@@ -77,7 +77,7 @@ begin
         wait for 5 ms;
 
         -- Etapa 3: B = 2
-        I_tb <= "0010";
+        I_tb <= "0110";
         button_tb <= '1';
         wait for 15 ms;
         button_tb <= '0';

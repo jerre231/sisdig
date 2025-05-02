@@ -12,32 +12,32 @@ end debouncer;
 
 architecture logic of debouncer is
 
-    constant clk_period      : time := 20 ns;    -- Clock period (50 MHz)
-    constant debounce_time   : time := 10 ms;    -- Debounce time
-    constant debounce_count  : integer := integer(debounce_time / clk_period);
-
     signal counter : integer := 0;
     signal stable  : STD_LOGIC := '0';
+
+    type state is (E0, E1)
+    signal current_state : state := E0;
 
 begin
 
     process(clock)
     begin
-        if rising_edge(clock) then
-            if button_in = '1' then
-                if counter < debounce_count then
-                    counter <= counter + 1;
-                end if;
-                if counter = debounce_count - 1 then
-                    stable <= '1';
-                end if;
-            else
-                counter <= 0;
-                stable <= '0';
-            end if;
+        -- if risingedge clock
+        if rising_edge(stable) then
+            case current_state is
+                when E0 =>
+                    if not button_in = stable then
+                        counter = '0';
+                        stable <= button_in;
+                        current_state <= E1;
+                    end if;
+                when E1 =>
+                    if counter < 30000000 then
+                        counter = counter + 1;
+                    else
+                        current_state <= E0;
+                    end if;
+            end case;
         end if;
     end process;
-
-    button_out <= stable;
-
 end logic;
