@@ -1,43 +1,36 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.STD_LOGIC_UNSIGNED.ALL;
+use IEEE.NUMERIC_STD.ALL;
 
 entity debouncer is
-    port (
-        clock      : in STD_LOGIC;
-        button_in  : in STD_LOGIC;  -- Noisy button input
-        button_out : out STD_LOGIC  -- Debounced button output
+    Port (
+        clk  : in  STD_LOGIC;
+        bIn  : in  STD_LOGIC;
+        bOut : out STD_LOGIC
     );
 end debouncer;
 
-architecture logic of debouncer is
+architecture Behavioral of debouncer is
+    constant CLK_FREQ_HZ   : integer := 50000000;
+    constant DEBOUNCE_TIME : integer := 20; -- ms
+    constant MAX_COUNT     : integer := CLK_FREQ_HZ / 1000 * DEBOUNCE_TIME;
 
-    signal counter : integer := 0;
-    signal stable  : STD_LOGIC := '0';
-
-    type state is (E0, E1)
-    signal current_state : state := E0;
+    signal counter : integer range 0 to MAX_COUNT := 0;
+    signal btn_reg : STD_LOGIC := '0';
 
 begin
-
-    process(clock)
+    process(clk)
     begin
-        -- if risingedge clock
-        if rising_edge(stable) then
-            case current_state is
-                when E0 =>
-                    if not button_in = stable then
-                        counter = '0';
-                        stable <= button_in;
-                        current_state <= E1;
-                    end if;
-                when E1 =>
-                    if counter < 30000000 then
-                        counter = counter + 1;
-                    else
-                        current_state <= E0;
-                    end if;
-            end case;
+        if rising_edge(clk) then
+            if bIn /= btn_reg then
+                counter <= 0;
+            elsif counter < MAX_COUNT then
+                counter <= counter + 1;
+            else
+                btn_reg <= bIn;
+            end if;
         end if;
     end process;
-end logic;
+
+    bOut <= btn_reg;
+end Behavioral;

@@ -1,150 +1,91 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.STD_LOGIC_UNSIGNED.ALL;
+use IEEE.NUMERIC_STD.ALL;
 
--- Declaring entity
 entity ula is
     port(
-        I : in STD_LOGIC_VECTOR(3 downto 0);
-        button : in STD_LOGIC;
-        clk : in STD_LOGIC;
-      
-        S : out STD_LOGIC_VECTOR(3 downto 0);
-        F_Z, F_N, F_C, F_O : out STD_LOGIC
+        input : in signed (3 downto 0);
+        button, clock : in STD_LOGIC;
+        indicators : out signed (3 downto 0);
+        output : out signed (3 downto 0)
     );
 end ula;
 
--- Architecture of ULA
 architecture Behavioral of ula is
 
+    signal a, b       : signed (3 downto 0) := (others => '0');
+    signal operation  : STD_LOGIC_VECTOR (2 downto 0) := (others => '0');
+    signal stableSign : STD_LOGIC;
+
+    type state is (s0, s1, s2, s3);
+    signal currentState : state := s0;
+
+    -- Declaração do componente Debouncer
     component debouncer
-        port(
-            clock      : in STD_LOGIC;
-            button_in  : in STD_LOGIC;
-            button_out : out STD_LOGIC
+        port (
+            clk  : in  STD_LOGIC;
+            bIn  : in  STD_LOGIC;
+            bOut : out STD_LOGIC
         );
     end component;
 
-    signal stable : STD_LOGIC;
-    signal A, B : STD_LOGIC_VECTOR(3 downto 0) := "0000";
-    signal S_temp : STD_LOGIC_VECTOR(4 downto 0);
-    signal OP : STD_LOGIC_VECTOR(2 downto 0);
-
-    type state is (S0, S1, S2, S3);
-    signal current_state : state := S0;
-    
 begin
 
-D0: debouncer port map(clock => clk, button_in => button, button_out => stable);
+    -- Instanciação do debouncer externo
+    debounce_unit : debouncer
+        port map (
+            clk  => clock,
+            bIn  => button,
+            bOut => stableSign
+        );
 
-
-    process(clk, stable) -- State change
+    -- Máquina de estados da ULA
+    process(clock)
     begin
-        if rising_edge(stable) then
-            case current_state is
-                when S0 => current_state <= S1;
-                when S1 => current_state <= S2;
-                when S2 => current_state <= S3;
-                when S3 => current_state <= S0;
-            end case;
+        if rising_edge(clock) then
+            if stableSign = '1' then
+                case currentState is
+                    when s0 =>
+                        operation <= std_logic_vector(input(2 downto 0)); -- Opcode
+                        currentState <= s1;
+                    when s1 =>
+                        a <= input;
+                        currentState <= s2;
+                    when s2 =>
+                        b <= input;
+                        currentState <= s3;
+                    when s3 =>
+                        case operation is
+                            when "000" =>  -- ADD
+                                output <= resize(a + b, 4);
+                            when "001" =>  -- SUB
+                                output <= resize(a - b, 4);
+                            when "010" =>  -- AND
+                                output <= a and b;
+                            when "011" =>  -- OR
+                                output <= a or b;
+                            when "100" =>  -- XOR
+                                output <= a xor b;
+                            when "101" =>  -- NOT A
+                                output <= not a;
+                            when "110" =>  -- NOT B
+                                output <= not b;
+                            when "111" =>  -- NAND
+                                output <= not (a and b);
+                            when others =>
+                                output <= (others => '0');
+                        end case;
+                        currentState <= s0;
+                end case;
+            end if;
         end if;
     end process;
 
-    process(clk)
-
-        begin
-            case current_state is
-                when S0 => -- SELECT OP
-                    OP(2 downto 0) <= I(2 downto 0);
-
-                when S1 => -- SELECT A
-                    A <= I;
-
-                when S2 => -- SELECT B
-                    B <= I;
-
-                when S3 => -- SHOW OUTPUTS
-                    case OP is
-                        when "000" => -- ADD
-                            S_temp <= ('0' & A) + ('0' & B);
-                            S <= S_temp(3 downto 0);
-                            F_Z <= '1' when S_temp(3 downto 0) = "0000" else '0';
-                            F_N <= S_temp(3);
-                            F_C <= S_temp(4);
-                            F_O <= '0'; -- Simplificado
-                
-                        when "001" => -- SUB
-                            S_temp <= ('0' & A) - ('0' & B);
-                            S <= S_temp(3 downto 0);
-                            F_Z <= '1' when S_temp(3 downto 0) = "0000" else '0';
-                            F_N <= S_temp(3);
-                            F_C <= S_temp(4);
-                            F_O <= '0'; -- Simplificado
-                
-                        when "010" => -- AND
-                            S_temp(3 downto 0) <= A and B;
-                            S_temp(4) <= '0';
-                            S <= S_temp(3 downto 0);
-                            F_Z <= '1' when S_temp(3 downto 0) = "0000" else '0';
-                            F_N <= S_temp(3);
-                            F_C <= '0';
-                            F_O <= '0';
-                
-                        when "011" => -- OR
-                            S_temp(3 downto 0) <= A or B;
-                            S_temp(4) <= '0';
-                            S <= S_temp(3 downto 0);
-                            F_Z <= '1' when S_temp(3 downto 0) = "0000" else '0';
-                            F_N <= S_temp(3);
-                            F_C <= '0';
-                            F_O <= '0';
-                
-                        when "100" => -- XOR
-                            S_temp(3 downto 0) <= A xor B;
-                            S_temp(4) <= '0';
-                            S <= S_temp(3 downto 0);
-                            F_Z <= '1' when S_temp(3 downto 0) = "0000" else '0';
-                            F_N <= S_temp(3);
-                            F_C <= '0';
-                            F_O <= '0';
-                
-                        when "101" => -- NOT A
-                            S_temp(3 downto 0) <= not A;
-                            S_temp(4) <= '0';
-                            S <= S_temp(3 downto 0);
-                            F_Z <= '1' when S_temp(3 downto 0) = "0000" else '0';
-                            F_N <= S_temp(3);
-                            F_C <= '0';
-                            F_O <= '0';
-                
-                        when "110" => -- NOT B
-                            S_temp(3 downto 0) <= not B;
-                            S_temp(4) <= '0';
-                            S <= S_temp(3 downto 0);
-                            F_Z <= '1' when S_temp(3 downto 0) = "0000" else '0';
-                            F_N <= S_temp(3);
-                            F_C <= '0';
-                            F_O <= '0';
-                
-                        when "111" => -- NAND
-                            S_temp(3 downto 0) <= not (A and B);
-                            S_temp(4) <= '0';
-                            S <= S_temp(3 downto 0);
-                            F_Z <= '1' when S_temp(3 downto 0) = "0000" else '0';
-                            F_N <= S_temp(3);
-                            F_C <= '0';
-                            F_O <= '0';
-                
-                        when others =>
-                            S_temp <= (others => '0');
-                            S <= S_temp(3 downto 0);
-                            F_Z <= '1';
-                            F_N <= '0';
-                            F_C <= '0';
-                            F_O <= '0';
-                
-                    end case;     
-            end case;
-    end process;
+    -- Indicadores de estado
+    with currentState select
+        indicators <= "1000" when s0,
+                      "0100" when s1,
+                      "0010" when s2,
+                      "0001" when s3;
 
 end Behavioral;
