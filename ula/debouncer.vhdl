@@ -17,7 +17,7 @@ architecture Behavioral of debouncer is
     signal counter : integer := 0;
     signal btn_reg : STD_LOGIC := '0';
 
-    type state is (E0, E1)
+    type state is (E0, E1);
     signal current_state : state := E0;
 
 begin
