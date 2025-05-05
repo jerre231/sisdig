@@ -1,0 +1,21 @@
+//! **************************************************************************
+// Written by: Map P.20131013 on Mon May 05 15:24:43 2025
+//! **************************************************************************
+
+SCHEMATIC START;
+COMP "output<0>" LOCATE = SITE "R20" LEVEL 1;
+COMP "output<1>" LOCATE = SITE "T19" LEVEL 1;
+COMP "output<2>" LOCATE = SITE "U20" LEVEL 1;
+COMP "output<3>" LOCATE = SITE "U19" LEVEL 1;
+COMP "indicators<0>" LOCATE = SITE "V19" LEVEL 1;
+COMP "indicators<1>" LOCATE = SITE "V20" LEVEL 1;
+COMP "indicators<2>" LOCATE = SITE "Y22" LEVEL 1;
+COMP "indicators<3>" LOCATE = SITE "W21" LEVEL 1;
+COMP "clock" LOCATE = SITE "E12" LEVEL 1;
+COMP "button" LOCATE = SITE "T15" LEVEL 1;
+COMP "input<0>" LOCATE = SITE "V8" LEVEL 1;
+COMP "input<1>" LOCATE = SITE "U10" LEVEL 1;
+COMP "input<2>" LOCATE = SITE "U8" LEVEL 1;
+COMP "input<3>" LOCATE = SITE "T9" LEVEL 1;
+SCHEMATIC END;
+

@@ -1,0 +1,5 @@
+set -tmpdir "/home/sd/ula/xst/projnav.tmp"
+set -xsthdpdir "/home/sd/ula/xst"
+elaborate
+-ifn debouncer.prj
+-ifmt mixed
