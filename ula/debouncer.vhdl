@@ -11,26 +11,38 @@ entity debouncer is
 end debouncer;
 
 architecture Behavioral of debouncer is
-    constant CLK_FREQ_HZ   : integer := 50000000;
-    constant DEBOUNCE_TIME : integer := 20; -- ms
-    constant MAX_COUNT     : integer := CLK_FREQ_HZ / 1000 * DEBOUNCE_TIME;
+    
+    constant MAX_COUNT     : integer := 30000000;
 
-    signal counter : integer range 0 to MAX_COUNT := 0;
+    signal counter : integer := 0;
     signal btn_reg : STD_LOGIC := '0';
+
+    type state is (E0, E1)
+    signal current_state : state := E0;
 
 begin
     process(clk)
     begin
         if rising_edge(clk) then
-            if bIn /= btn_reg then
-                counter <= 0;
-            elsif counter < MAX_COUNT then
-                counter <= counter + 1;
-            else
-                btn_reg <= bIn;
-            end if;
+            case current_state is
+                when E0 =>
+                    if bIn /= btn_reg then
+                        counter <= 0;
+                        btn_reg <= bIn;
+                        current_state <= E1;
+                    end if;
+                when E1 =>
+                    if counter < MAX_COUNT then
+                        counter <= counter + 1;
+                    else
+                        current_state <= E0;
+                    end if;
+            end case;
+
+            bOut <= btn_reg;
+
         end if;
+    
     end process;
 
-    bOut <= btn_reg;
 end Behavioral;
