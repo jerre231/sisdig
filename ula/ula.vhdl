@@ -150,8 +150,8 @@ begin
                     -- outputData port
                     outputData <= intOutput(3 downto 0);
 						  
-					-- indicators port
-					indicators <= intIndicators;
+		    -- indicators port
+		    indicators <= intIndicators;
 
             end case;
         end if;
