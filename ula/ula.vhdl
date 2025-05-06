@@ -13,9 +13,9 @@ end ula;
 
 --| indicators representam tanto o estado, quanto as flags:
 --|
---| indicator(3) : flag carry
+--| indicator(3) : flag overflow
 --| indicator(2) : flag zero
---| indicator(1) : flag overflow
+--| indicator(1) : flag carry
 --| indicator(0) : flag negativo
 
 architecture Behavioral of ula is
@@ -25,6 +25,9 @@ architecture Behavioral of ula is
     signal operation  : STD_LOGIC_VECTOR (2 downto 0) := (others => '0');
     signal intOutput : signed (4 downto 0) := (others => '0');
     signal intIndicators: STD_LOGIC_VECTOR (3 downto 0) := (others => '0');
+
+    -- Sinais vetoriais (para trabalhar bit a bit)
+    signal aV, aB : STD_LOGIC_VECTOR(3 downto 0);
 
     -- Sinal estavel do botao
     signal stableSign : STD_LOGIC;
@@ -90,70 +93,68 @@ begin
                 when s3 =>
                     case operation is
                         when "000" =>  -- ADD
-                            tempOutput <= resize(a, 5) + resize(b, 5);
+                            intOutput <= resize(a, 5) + resize(b, 5);
                         when "001" =>  -- SUB
-                            tempOutput <= resize(a, 5) - resize(b, 5);
+                            intOutput <= resize(a, 5) - resize(b,5);
                         when "010" =>  -- AND
-                            tempOutput <= resize(signed(a and b), 5);
+                            intOutput(3 downto 0) <= signed(a and b);
                         when "011" =>  -- OR
-                            tempOutput <= resize(a or b, 5);
+                            intOutput(3 downto 0) <= signed(a or b);
                         when "100" =>  -- XOR
-                            tempOutput <= resize(a xor b, 5);
+                            intOutput(3 downto 0) <= signed(a xor b);
                         when "101" =>  -- NOT A
-                            tempOutput <= resize(not a, 5);
+                            intOutput(3 downto 0) <= not a;
                         when "110" =>  -- NOT B
-                            tempOutput <= resize(not b, 5);
+                            intOutput(3 downto 0) <= not b;
                         when "111" =>  -- NAND
-                            tempOutput <= resize(not (a and b), 5);
+                            intOutput(3 downto 0) <= signed(not (a and b));
                         when others =>
-                            tempOutput <= (others => '0');
+                            intOutput(3 downto 0) <= (others => '0');
                     end case;
-
-                    -- Output port
-                    outputData <= tempOutput(3 downto 0);
-
+						  
                     -- Flags:
 
                     -- Negativo
-                    indicators(0) <= tempOutput(3);
+                    intIndicators(0) <= intOutput(3);
 
                     -- Zero
-                    if tempOutput(3 downto 0) = "0000" then
-                        indicators(2) <= '1';
+                    if intOutput(3 downto 0) = "0000" then
+                        intIndicators(2) <= '1';
                     else
-                        indicators(2) <= '0';
+                        intIndicators(2) <= '0';
                     end if;
 
-                    -- Carry
-                    indicators(3) <= tempOutput(4);
+                    -- Overflow e Carry (somente para ADD e SUB)
+                    if operation = "000" then
 
-                    -- Overflow (válido só para ADD e SUB)
-                    if operation = "000" or operation = "001" then
-                        indicators(1) <= (a(3) xor tempOutput(3)) and not (a(3) xor b(3));
+                        -- Carry
+                        intIndicators(1) <= intOutput(4);
+
+                        -- Overflow
+                        intIndicators(3) <= (aV(3) and bV(3) and not intOutput(3)) or (not aV(3) and not bV(3) and intOutput(3));
+
+                    elsif operation = "001" then
+
+                        -- Carry
+                        intIndicators(1) <= '1' when a >= b else '0';
+
+                        -- Overflow
+                        intIndicators(3) <= (aV(3) and not bV(3) and not intOutput(3)) or (not aV(3) and bV(3) and intOutput(3));
+
                     else
-                        indicators(1) <= '0';
+                        intIndicators(1) <= '0';
+                        intIndicators(3) <= '0';
+
                     end if;
                     
-                    --
+                    -- outputData port
+                    outputData <= intOutput(3 downto 0);
+						  
+					-- indicators port
+					indicators <= intIndicators;
 
             end case;
-            
         end if;
+
     end process;
-
-    -- -- Indicadores de estados
-    -- process(currentState)
-    -- begin
-    --     case currentState is
-    --         when s0 =>
-    --             indicators <= "1000";
-    --         when s1 =>
-    --             indicators <= "0100";
-    --         when s2 =>
-    --             indicators <= "0010";
-    --         when s3 =>
-    --             indicators <= "0001";
-    --     end case;
-    -- end process;
-
 end Behavioral;
