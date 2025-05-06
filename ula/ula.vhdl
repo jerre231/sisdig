@@ -4,10 +4,10 @@ use IEEE.NUMERIC_STD.ALL;
 
 entity ula is
     port(
-        input : in signed (3 downto 0);
+        inputData : in signed (3 downto 0);
         button, clock : in STD_LOGIC;
-        indicators : out signed (3 downto 0);
-        output : out signed (3 downto 0)
+        indicators : out STD_LOGIC_VECTOR (3 downto 0);
+        outputData : out signed (3 downto 0)
     );
 end ula;
 
@@ -20,15 +20,19 @@ end ula;
 
 architecture Behavioral of ula is
 
+    -- Sinais internos
     signal a, b       : signed (3 downto 0) := (others => '0');
     signal operation  : STD_LOGIC_VECTOR (2 downto 0) := (others => '0');
+    signal intOutput : signed (4 downto 0) := (others => '0');
+    signal intIndicators: STD_LOGIC_VECTOR (3 downto 0) := (others => '0');
+
+    -- Sinal estavel do botao
     signal stableSign : STD_LOGIC;
-    signal temp_out : STD_LOGIC_VECTOR (4 downto 0);
 
     type state is (s0, s1, s2, s3);
     signal currentState : state := s0;
 
-    -- Declaração do componente Debouncer
+    -- Declaração do componente debouncer
     component debouncer
         port (
             clk  : in  STD_LOGIC;
@@ -39,7 +43,7 @@ architecture Behavioral of ula is
 
 begin
 
-    -- Instanciação do debouncer externo
+    -- Instanciação do debouncer
     debounce_unit : debouncer
         port map (
             clk  => clock,
@@ -47,11 +51,9 @@ begin
             bOut => stableSign
         );
 
-    -- Máquina de estados da ULA
-    process(clock, stableSign)
+    -- Logica de mudanca de estado
+    process(stableSign)
     begin
-        
-        -- Logica de troca de estados
         if rising_edge(stableSign) then
             case currentState is
                 when s0 => currentState <= s1;
@@ -60,61 +62,82 @@ begin
                 when s3 => currentState <= s0;
             end case;
         end if;
+    end process;
 
+    -- Processo sequencial da ULA
+    process(clock)
+    begin
+        
         if rising_edge(clock) then
             case currentState is
+                -- Seletor de operacoes
                 when s0 =>
-                    operation <= std_logic_vector(input(2 downto 0));
+                    operation <= std_logic_vector(inputData(2 downto 0));
                     indicators <= "1000";
-                    output <= "0000"
+                    outputData <= "0000";
+                
+                -- Seletor operando A
                 when s1 =>
-                    a <= input;
+                    a <= inputData;
                     indicators <= "0100";
+
+                -- Seletor operando B
                 when s2 =>
-                    b <= input;
+                    b <= inputData;
                     indicators <= "0010";
+
+                -- Operacional
                 when s3 =>
                     case operation is
                         when "000" =>  -- ADD
-                            temp_out <= resize(a, 5) + resize(b, 5);
-                            indicators(3) <= temp_out(4)
-                            indicators(1) <= (a(3) xor not b(3)) and (a(3) xor temp_out(3))
-                            output <= resize(a + b, 4);
-
+                            tempOutput <= resize(a, 5) + resize(b, 5);
                         when "001" =>  -- SUB
-                            temp_out <= resize(a, 5) + resize(b, 5);
-                            indicators(3) <= temp_out(4)
-                            indicators(1) <= (a(3) xor b(3)) and (a(3) xor temp_out(3))
-                            output <= resize(a - b, 4);
-
+                            tempOutput <= resize(a, 5) - resize(b, 5);
                         when "010" =>  -- AND
-                            output <= a and b;
-
+                            tempOutput <= resize(signed(a and b), 5);
                         when "011" =>  -- OR
-                            output <= a or b;
-
+                            tempOutput <= resize(a or b, 5);
                         when "100" =>  -- XOR
-                            output <= a xor b;
-
+                            tempOutput <= resize(a xor b, 5);
                         when "101" =>  -- NOT A
-                            output <= not a;
-
+                            tempOutput <= resize(not a, 5);
                         when "110" =>  -- NOT B
-                            output <= not b;
-
+                            tempOutput <= resize(not b, 5);
                         when "111" =>  -- NAND
-                            output <= not (a and b);
-
+                            tempOutput <= resize(not (a and b), 5);
                         when others =>
-                            output <= (others => '0');
-
+                            tempOutput <= (others => '0');
                     end case;
 
-                    -- Flags comuns a todas as operações
-                    indicators(0) := output(3);  -- Negativo (bit de sinal)
-                    indicators(2) := '1' when output = "0000" else '0';
+                    -- Output port
+                    outputData <= tempOutput(3 downto 0);
+
+                    -- Flags:
+
+                    -- Negativo
+                    indicators(0) <= tempOutput(3);
+
+                    -- Zero
+                    if tempOutput(3 downto 0) = "0000" then
+                        indicators(2) <= '1';
+                    else
+                        indicators(2) <= '0';
+                    end if;
+
+                    -- Carry
+                    indicators(3) <= tempOutput(4);
+
+                    -- Overflow (válido só para ADD e SUB)
+                    if operation = "000" or operation = "001" then
+                        indicators(1) <= (a(3) xor tempOutput(3)) and not (a(3) xor b(3));
+                    else
+                        indicators(1) <= '0';
+                    end if;
+                    
+                    --
 
             end case;
+            
         end if;
     end process;
 
