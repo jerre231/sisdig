@@ -83,6 +83,7 @@ begin
                     else
                         n_next <= n_reg - 1;
                     end if;
+                end if;
             when load =>
                 state_next <= idle;
                 rx_done_tick <='1';

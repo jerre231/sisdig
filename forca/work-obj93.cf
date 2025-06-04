@@ -1,0 +1,4 @@
+v 4
+file . "ps2_rx.vhd" "b2b7247dd1c0e128c9bc745767f81bd662cef5cd" "20250604131951.864":
+  entity ps2_rx at 5( 133) + 0 on 11;
+  architecture arch of ps2_rx at 20( 481) + 0 on 12;
