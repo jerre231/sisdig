@@ -1,0 +1,8 @@
+AR ps2_rx arch /home/sd/lcd/ps2_rx.vhd sub00/vhpl01 1752004659
+EN lcd NULL /home/sd/lcd/lcd.vhd sub00/vhpl06 1752004664
+AR kb_code arch /home/sd/lcd/kb_code.vhd sub00/vhpl05 1752004663
+AR lcd behavioral /home/sd/lcd/lcd.vhd sub00/vhpl07 1752004665
+EN ps2_rx NULL /home/sd/lcd/ps2_rx.vhd sub00/vhpl00 1752004658
+AR fifo arch /home/sd/lcd/fifo.vhd sub00/vhpl03 1752004661
+EN kb_code NULL /home/sd/lcd/kb_code.vhd sub00/vhpl04 1752004662
+EN fifo NULL /home/sd/lcd/fifo.vhd sub00/vhpl02 1752004660

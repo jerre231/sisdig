@@ -1,0 +1,8 @@
+INTSTYLE=ise
+INFILE=/home/sd/lcd/LCD.ncd
+OUTFILE=/home/sd/lcd/LCD.bit
+FAMILY=Spartan3A and Spartan3AN
+PART=xc3s700an-4fgg484
+WORKINGDIR=/home/sd/lcd
+LICENSE=WebPack
+USER_INFO=211545305_0_0_116

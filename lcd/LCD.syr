@@ -1,0 +1,706 @@
+Release 14.7 - xst P.20131013 (lin64)
+Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
+--> 
+Parameter TMPDIR set to xst/projnav.tmp
+
+
+Total REAL time to Xst completion: 0.00 secs
+Total CPU time to Xst completion: 0.04 secs
+ 
+--> 
+Parameter xsthdpdir set to xst
+
+
+Total REAL time to Xst completion: 0.00 secs
+Total CPU time to Xst completion: 0.04 secs
+ 
+--> 
+Reading design: LCD.prj
+
+TABLE OF CONTENTS
+  1) Synthesis Options Summary
+  2) HDL Compilation
+  3) Design Hierarchy Analysis
+  4) HDL Analysis
+  5) HDL Synthesis
+     5.1) HDL Synthesis Report
+  6) Advanced HDL Synthesis
+     6.1) Advanced HDL Synthesis Report
+  7) Low Level Synthesis
+  8) Partition Report
+  9) Final Report
+	9.1) Device utilization summary
+	9.2) Partition Resource Summary
+	9.3) TIMING REPORT
+
+
+=========================================================================
+*                      Synthesis Options Summary                        *
+=========================================================================
+---- Source Parameters
+Input File Name                    : "LCD.prj"
+Input Format                       : mixed
+Ignore Synthesis Constraint File   : NO
+
+---- Target Parameters
+Output File Name                   : "LCD"
+Output Format                      : NGC
+Target Device                      : xc3s700an-4-fgg484
+
+---- Source Options
+Top Module Name                    : LCD
+Automatic FSM Extraction           : YES
+FSM Encoding Algorithm             : Auto
+Safe Implementation                : No
+FSM Style                          : LUT
+RAM Extraction                     : Yes
+RAM Style                          : Auto
+ROM Extraction                     : Yes
+Mux Style                          : Auto
+Decoder Extraction                 : YES
+Priority Encoder Extraction        : Yes
+Shift Register Extraction          : YES
+Logical Shifter Extraction         : YES
+XOR Collapsing                     : YES
+ROM Style                          : Auto
+Mux Extraction                     : Yes
+Resource Sharing                   : YES
+Asynchronous To Synchronous        : NO
+Multiplier Style                   : Auto
+Automatic Register Balancing       : No
+
+---- Target Options
+Add IO Buffers                     : YES
+Global Maximum Fanout              : 100000
+Add Generic Clock Buffer(BUFG)     : 24
+Register Duplication               : YES
+Slice Packing                      : YES
+Optimize Instantiated Primitives   : NO
+Use Clock Enable                   : Yes
+Use Synchronous Set                : Yes
+Use Synchronous Reset              : Yes
+Pack IO Registers into IOBs        : Auto
+Equivalent register Removal        : YES
+
+---- General Options
+Optimization Goal                  : Speed
+Optimization Effort                : 1
+Keep Hierarchy                     : No
+Netlist Hierarchy                  : As_Optimized
+RTL Output                         : Yes
+Global Optimization                : AllClockNets
+Read Cores                         : YES
+Write Timing Constraints           : NO
+Cross Clock Analysis               : NO
+Hierarchy Separator                : /
+Bus Delimiter                      : <>
+Case Specifier                     : Maintain
+Slice Utilization Ratio            : 100
+BRAM Utilization Ratio             : 100
+Verilog 2001                       : YES
+Auto BRAM Packing                  : NO
+Slice Utilization Ratio Delta      : 5
+
+=========================================================================
+
+
+=========================================================================
+*                          HDL Compilation                              *
+=========================================================================
+Compiling vhdl file "/home/sd/lcd/ps2_rx.vhd" in Library work.
+Architecture arch of Entity ps2_rx is up to date.
+Compiling vhdl file "/home/sd/lcd/fifo.vhd" in Library work.
+Architecture arch of Entity fifo is up to date.
+Compiling vhdl file "/home/sd/lcd/kb_code.vhd" in Library work.
+Architecture arch of Entity kb_code is up to date.
+Compiling vhdl file "/home/sd/lcd/lcd.vhd" in Library work.
+Entity <lcd> compiled.
+Entity <lcd> (Architecture <behavioral>) compiled.
+
+=========================================================================
+*                     Design Hierarchy Analysis                         *
+=========================================================================
+Analyzing hierarchy for entity <LCD> in library <work> (architecture <behavioral>).
+WARNING:Xst:2094 - "/home/sd/lcd/lcd.vhd" line 101: Default value is ignored for signal <LCD_CMDS>.
+
+Analyzing hierarchy for entity <KB_CODE> in library <work> (architecture <arch>) with generics.
+	W_SIZE = 2
+
+Analyzing hierarchy for entity <PS2_RX> in library <work> (architecture <ARCH>).
+
+Analyzing hierarchy for entity <FIFO> in library <work> (architecture <ARCH>) with generics.
+	B = 8
+	W = 2
+
+
+=========================================================================
+*                            HDL Analysis                               *
+=========================================================================
+Analyzing Entity <LCD> in library <work> (Architecture <behavioral>).
+WARNING:Xst:2094 - "/home/sd/lcd/lcd.vhd" line 101: Default value is ignored for signal <LCD_CMDS>.
+Entity <LCD> analyzed. Unit <LCD> generated.
+
+Analyzing generic Entity <KB_CODE> in library <work> (Architecture <arch>).
+	W_SIZE = 2
+WARNING:Xst:753 - "/home/sd/lcd/kb_code.vhd" line 40: Unconnected output port 'FULL' of component 'FIFO'.
+Entity <KB_CODE> analyzed. Unit <KB_CODE> generated.
+
+Analyzing Entity <PS2_RX> in library <work> (Architecture <ARCH>).
+Entity <PS2_RX> analyzed. Unit <PS2_RX> generated.
+
+Analyzing generic Entity <FIFO> in library <work> (Architecture <ARCH>).
+	B = 8
+	W = 2
+Entity <FIFO> analyzed. Unit <FIFO> generated.
+
+
+=========================================================================
+*                           HDL Synthesis                               *
+=========================================================================
+
+Performing bidirectional port resolution...
+
+Synthesizing Unit <PS2_RX>.
+    Related source file is "/home/sd/lcd/ps2_rx.vhd".
+WARNING:Xst:646 - Signal <B_REG<0>> is assigned but never used. This unconnected signal will be trimmed during the optimization process.
+    Found finite state machine <FSM_0> for signal <STATE_REG>.
+    -----------------------------------------------------------------------
+    | States             | 3                                              |
+    | Transitions        | 6                                              |
+    | Inputs             | 2                                              |
+    | Outputs            | 3                                              |
+    | Clock              | CLK                       (rising_edge)        |
+    | Reset              | RESET                     (positive)           |
+    | Reset type         | asynchronous                                   |
+    | Reset State        | idle                                           |
+    | Power Up State     | idle                                           |
+    | Encoding           | automatic                                      |
+    | Implementation     | LUT                                            |
+    -----------------------------------------------------------------------
+    Found 11-bit register for signal <B_REG>.
+    Found 1-bit register for signal <F_PS2C_REG>.
+    Found 8-bit register for signal <FILTER_REG>.
+    Found 4-bit register for signal <N_REG>.
+    Found 4-bit subtractor for signal <N_REG$addsub0000> created at line 85.
+    Summary:
+	inferred   1 Finite State Machine(s).
+	inferred  24 D-type flip-flop(s).
+	inferred   1 Adder/Subtractor(s).
+Unit <PS2_RX> synthesized.
+
+
+Synthesizing Unit <FIFO>.
+    Related source file is "/home/sd/lcd/fifo.vhd".
+    Found 8-bit 4-to-1 multiplexer for signal <R_DATA>.
+    Found 32-bit register for signal <ARRAY_REG>.
+    Found 1-bit register for signal <EMPTY_REG>.
+    Found 2-bit comparator equal for signal <EMPTY_REG$cmp_eq0000> created at line 88.
+    Found 1-bit 4-to-1 multiplexer for signal <EMPTY_REG$mux0000> created at line 82.
+    Found 1-bit register for signal <FULL_REG>.
+    Found 2-bit comparator equal for signal <FULL_REG$cmp_eq0000> created at line 96.
+    Found 1-bit 4-to-1 multiplexer for signal <FULL_REG$mux0000> created at line 82.
+    Found 2-bit register for signal <R_PTR_REG>.
+    Found 2-bit 4-to-1 multiplexer for signal <R_PTR_REG$mux0000> created at line 82.
+    Found 2-bit adder for signal <R_PTR_SUCC$add0000> created at line 71.
+    Found 2-bit register for signal <W_PTR_REG>.
+    Found 2-bit 4-to-1 multiplexer for signal <W_PTR_REG$mux0000> created at line 82.
+    Found 2-bit adder for signal <W_PTR_SUCC$add0000> created at line 70.
+    Summary:
+	inferred  38 D-type flip-flop(s).
+	inferred   2 Adder/Subtractor(s).
+	inferred   2 Comparator(s).
+	inferred  14 Multiplexer(s).
+Unit <FIFO> synthesized.
+
+
+Synthesizing Unit <KB_CODE>.
+    Related source file is "/home/sd/lcd/kb_code.vhd".
+WARNING:Xst:1780 - Signal <W_DATA> is never used or assigned. This unconnected signal will be trimmed during the optimization process.
+    Found 1-bit register for signal <STATE_REG<0>>.
+    Summary:
+	inferred   1 D-type flip-flop(s).
+Unit <KB_CODE> synthesized.
+
+
+Synthesizing Unit <LCD>.
+    Related source file is "/home/sd/lcd/lcd.vhd".
+WARNING:Xst:1780 - Signal <PERDEU> is never used or assigned. This unconnected signal will be trimmed during the optimization process.
+WARNING:Xst:1780 - Signal <JNEXT> is never used or assigned. This unconnected signal will be trimmed during the optimization process.
+WARNING:Xst:1780 - Signal <JATUAL> is never used or assigned. This unconnected signal will be trimmed during the optimization process.
+    Found finite state machine <FSM_1> for signal <MATUAL>.
+    -----------------------------------------------------------------------
+    | States             | 3                                              |
+    | Transitions        | 4                                              |
+    | Inputs             | 1                                              |
+    | Outputs            | 2                                              |
+    | Clock              | ONEUSCLK                  (rising_edge)        |
+    | Power Up State     | minicial                                       |
+    | Encoding           | automatic                                      |
+    | Implementation     | LUT                                            |
+    -----------------------------------------------------------------------
+    Found finite state machine <FSM_2> for signal <STCURW>.
+    -----------------------------------------------------------------------
+    | States             | 3                                              |
+    | Transitions        | 4                                              |
+    | Inputs             | 1                                              |
+    | Outputs            | 1                                              |
+    | Clock              | ONEUSCLK                  (rising_edge)        |
+    | Reset              | RST                       (positive)           |
+    | Reset type         | synchronous                                    |
+    | Reset State        | stidle                                         |
+    | Power Up State     | stidle                                         |
+    | Encoding           | automatic                                      |
+    | Implementation     | LUT                                            |
+    -----------------------------------------------------------------------
+    Using one-hot encoding for signal <STCUR>.
+    Using one-hot encoding for signal <STNEXT>.
+    Found 6-bit up counter for signal <CLKCOUNT>.
+    Found 17-bit up counter for signal <COUNT>.
+    Found 4-bit up counter for signal <ERROCOUNT>.
+    Found 8-bit register for signal <KEYREAD>.
+    Found 4-bit up counter for signal <LCD_CMD_PTR>.
+    Found 1-bit register for signal <LIBERABUF>.
+    Found 10-bit 14-to-1 multiplexer for signal <RS$varindex0000> created at line 227.
+    Found 70-bit register for signal <SHOW>.
+    Found 5-bit comparator greatequal for signal <SHOW_5$cmp_ge0000> created at line 356.
+    Found 10-bit register for signal <STCUR>.
+    Found 1-bit register for signal <TECLOU>.
+    Summary:
+	inferred   2 Finite State Machine(s).
+	inferred   4 Counter(s).
+	inferred  20 D-type flip-flop(s).
+	inferred   1 Comparator(s).
+	inferred  10 Multiplexer(s).
+Unit <LCD> synthesized.
+
+
+=========================================================================
+HDL Synthesis Report
+
+Macro Statistics
+# Adders/Subtractors                                   : 3
+ 2-bit adder                                           : 2
+ 4-bit subtractor                                      : 1
+# Counters                                             : 4
+ 17-bit up counter                                     : 1
+ 4-bit up counter                                      : 2
+ 6-bit up counter                                      : 1
+# Registers                                            : 24
+ 1-bit register                                        : 6
+ 10-bit register                                       : 8
+ 11-bit register                                       : 1
+ 2-bit register                                        : 2
+ 4-bit register                                        : 1
+ 8-bit register                                        : 6
+# Comparators                                          : 3
+ 2-bit comparator equal                                : 2
+ 5-bit comparator greatequal                           : 1
+# Multiplexers                                         : 6
+ 1-bit 4-to-1 multiplexer                              : 2
+ 10-bit 14-to-1 multiplexer                            : 1
+ 2-bit 4-to-1 multiplexer                              : 2
+ 8-bit 4-to-1 multiplexer                              : 1
+
+=========================================================================
+
+=========================================================================
+*                       Advanced HDL Synthesis                          *
+=========================================================================
+
+Analyzing FSM <FSM_2> for best encoding.
+Optimizing FSM <STCURW/FSM> on signal <STCURW[1:2]> with user encoding.
+----------------------
+ State    | Encoding
+----------------------
+ strw     | 00
+ stenable | 01
+ stidle   | 10
+----------------------
+Analyzing FSM <FSM_1> for best encoding.
+Optimizing FSM <MATUAL/FSM> on signal <MATUAL[1:2]> with user encoding.
+----------------------
+ State    | Encoding
+----------------------
+ minicial | 00
+ mmeio    | 01
+ mfinal   | 10
+----------------------
+Analyzing FSM <FSM_0> for best encoding.
+Optimizing FSM <KBC/PS2_RX_UNIT/STATE_REG/FSM> on signal <STATE_REG[1:2]> with gray encoding.
+-------------------
+ State | Encoding
+-------------------
+ idle  | 00
+ dps   | 01
+ load  | 11
+-------------------
+WARNING:Xst:1293 - FF/Latch <9> has a constant value of 1 in block <SHOW_4>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <8> has a constant value of 0 in block <SHOW_4>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <7> has a constant value of 0 in block <SHOW_4>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <4> has a constant value of 0 in block <SHOW_4>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <2> has a constant value of 1 in block <SHOW_4>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <9> has a constant value of 1 in block <SHOW_3>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <8> has a constant value of 0 in block <SHOW_3>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <7> has a constant value of 0 in block <SHOW_3>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <0> has a constant value of 0 in block <SHOW_3>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <2> has a constant value of 1 in block <SHOW_3>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <9> has a constant value of 1 in block <SHOW_2>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <8> has a constant value of 0 in block <SHOW_2>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <7> has a constant value of 0 in block <SHOW_2>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <1> has a constant value of 1 in block <SHOW_2>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <9> has a constant value of 1 in block <SHOW_1>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <8> has a constant value of 0 in block <SHOW_1>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <7> has a constant value of 0 in block <SHOW_1>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <4> has a constant value of 0 in block <SHOW_1>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <9> has a constant value of 1 in block <SHOW_0>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <8> has a constant value of 0 in block <SHOW_0>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <7> has a constant value of 0 in block <SHOW_0>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <9> has a constant value of 1 in block <SHOW_6>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <8> has a constant value of 0 in block <SHOW_6>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <7> has a constant value of 0 in block <SHOW_6>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <4> has a constant value of 0 in block <SHOW_6>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <9> has a constant value of 1 in block <SHOW_5>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <8> has a constant value of 0 in block <SHOW_5>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <7> has a constant value of 0 in block <SHOW_5>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <2> has a constant value of 1 in block <SHOW_5>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:2677 - Node <B_REG_0> of sequential type is unconnected in block <PS2_RX_UNIT>.
+WARNING:Xst:2677 - Node <B_REG_0> of sequential type is unconnected in block <PS2_RX>.
+
+=========================================================================
+Advanced HDL Synthesis Report
+
+Macro Statistics
+# FSMs                                                 : 3
+# Adders/Subtractors                                   : 3
+ 2-bit adder                                           : 2
+ 4-bit subtractor                                      : 1
+# Counters                                             : 4
+ 17-bit up counter                                     : 1
+ 4-bit up counter                                      : 2
+ 6-bit up counter                                      : 1
+# Registers                                            : 152
+ Flip-Flops                                            : 152
+# Comparators                                          : 3
+ 2-bit comparator equal                                : 2
+ 5-bit comparator greatequal                           : 1
+# Multiplexers                                         : 6
+ 1-bit 4-to-1 multiplexer                              : 2
+ 10-bit 14-to-1 multiplexer                            : 1
+ 2-bit 4-to-1 multiplexer                              : 2
+ 8-bit 4-to-1 multiplexer                              : 1
+
+=========================================================================
+
+=========================================================================
+*                         Low Level Synthesis                           *
+=========================================================================
+INFO:Xst:2261 - The FF/Latch <TECLOU> in Unit <LCD> is equivalent to the following FF/Latch, which will be removed : <MATUAL_FSM_FFd1> 
+INFO:Xst:2261 - The FF/Latch <4> in Unit <LPM_DFF_79> is equivalent to the following 2 FFs/Latches, which will be removed : <7> <8> 
+INFO:Xst:2261 - The FF/Latch <0> in Unit <LPM_DFF_79> is equivalent to the following FF/Latch, which will be removed : <6> 
+INFO:Xst:2261 - The FF/Latch <2> in Unit <LPM_DFF_79> is equivalent to the following FF/Latch, which will be removed : <9> 
+INFO:Xst:2261 - The FF/Latch <1> in Unit <LPM_DFF_79> is equivalent to the following 2 FFs/Latches, which will be removed : <3> <5> 
+INFO:Xst:2261 - The FF/Latch <0> in Unit <LPM_DFF_68> is equivalent to the following 2 FFs/Latches, which will be removed : <7> <8> 
+INFO:Xst:2261 - The FF/Latch <2> in Unit <LPM_DFF_68> is equivalent to the following FF/Latch, which will be removed : <9> 
+INFO:Xst:2261 - The FF/Latch <1> in Unit <LPM_DFF_68> is equivalent to the following 2 FFs/Latches, which will be removed : <3> <5> 
+INFO:Xst:2261 - The FF/Latch <7> in Unit <LPM_DFF_57> is equivalent to the following FF/Latch, which will be removed : <8> 
+INFO:Xst:2261 - The FF/Latch <4> in Unit <LPM_DFF_57> is equivalent to the following FF/Latch, which will be removed : <6> 
+INFO:Xst:2261 - The FF/Latch <1> in Unit <LPM_DFF_57> is equivalent to the following FF/Latch, which will be removed : <9> 
+INFO:Xst:2261 - The FF/Latch <2> in Unit <LPM_DFF_57> is equivalent to the following 2 FFs/Latches, which will be removed : <3> <5> 
+INFO:Xst:2261 - The FF/Latch <4> in Unit <LPM_DFF_46> is equivalent to the following 2 FFs/Latches, which will be removed : <7> <8> 
+INFO:Xst:2261 - The FF/Latch <0> in Unit <LPM_DFF_46> is equivalent to the following FF/Latch, which will be removed : <6> 
+INFO:Xst:2261 - The FF/Latch <1> in Unit <LPM_DFF_46> is equivalent to the following FF/Latch, which will be removed : <5> 
+INFO:Xst:2261 - The FF/Latch <7> in Unit <LPM_DFF_35> is equivalent to the following FF/Latch, which will be removed : <8> 
+INFO:Xst:2261 - The FF/Latch <4> in Unit <LPM_DFF_35> is equivalent to the following FF/Latch, which will be removed : <6> 
+INFO:Xst:2261 - The FF/Latch <2> in Unit <LPM_DFF_35> is equivalent to the following 2 FFs/Latches, which will be removed : <3> <5> 
+INFO:Xst:2261 - The FF/Latch <4> in Unit <LPM_DFF_20> is equivalent to the following 2 FFs/Latches, which will be removed : <7> <8> 
+INFO:Xst:2261 - The FF/Latch <2> in Unit <LPM_DFF_20> is equivalent to the following 2 FFs/Latches, which will be removed : <1> <3> 
+INFO:Xst:2261 - The FF/Latch <7> in Unit <LPM_DFF_9> is equivalent to the following FF/Latch, which will be removed : <8> 
+INFO:Xst:2261 - The FF/Latch <0> in Unit <LPM_DFF_9> is equivalent to the following FF/Latch, which will be removed : <6> 
+INFO:Xst:2261 - The FF/Latch <2> in Unit <LPM_DFF_9> is equivalent to the following FF/Latch, which will be removed : <9> 
+INFO:Xst:2261 - The FF/Latch <1> in Unit <LPM_DFF_9> is equivalent to the following FF/Latch, which will be removed : <5> 
+WARNING:Xst:1293 - FF/Latch <2> has a constant value of 1 in block <LPM_DFF_79>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1896 - Due to other FF/Latch trimming, FF/Latch <4> has a constant value of 0 in block <LPM_DFF_79>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <2> has a constant value of 1 in block <LPM_DFF_68>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1896 - Due to other FF/Latch trimming, FF/Latch <0> has a constant value of 0 in block <LPM_DFF_68>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <1> has a constant value of 1 in block <LPM_DFF_57>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1896 - Due to other FF/Latch trimming, FF/Latch <7> has a constant value of 0 in block <LPM_DFF_57>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <4> has a constant value of 0 in block <LPM_DFF_46>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1896 - Due to other FF/Latch trimming, FF/Latch <9> has a constant value of 1 in block <LPM_DFF_46>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <7> has a constant value of 0 in block <LPM_DFF_35>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1896 - Due to other FF/Latch trimming, FF/Latch <9> has a constant value of 1 in block <LPM_DFF_35>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <4> has a constant value of 0 in block <LPM_DFF_20>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1896 - Due to other FF/Latch trimming, FF/Latch <9> has a constant value of 1 in block <LPM_DFF_20>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1293 - FF/Latch <2> has a constant value of 1 in block <LPM_DFF_9>. This FF/Latch will be trimmed during the optimization process.
+WARNING:Xst:1896 - Due to other FF/Latch trimming, FF/Latch <7> has a constant value of 0 in block <LPM_DFF_9>. This FF/Latch will be trimmed during the optimization process.
+INFO:Xst:2261 - The FF/Latch <SHOW_2_0> in Unit <LCD> is equivalent to the following FF/Latch, which will be removed : <SHOW_0_0> 
+INFO:Xst:2261 - The FF/Latch <SHOW_2_2> in Unit <LCD> is equivalent to the following FF/Latch, which will be removed : <SHOW_0_2> 
+INFO:Xst:2261 - The FF/Latch <SHOW_2_4> in Unit <LCD> is equivalent to the following FF/Latch, which will be removed : <SHOW_0_4> 
+
+Optimizing unit <LCD> ...
+
+Optimizing unit <PS2_RX> ...
+
+Optimizing unit <FIFO> ...
+
+Mapping all equations...
+Building and optimizing final netlist ...
+Found area constraint ratio of 100 (+ 5) on block LCD, actual ratio is 2.
+
+Final Macro Processing ...
+
+=========================================================================
+Final Register Report
+
+Macro Statistics
+# Registers                                            : 139
+ Flip-Flops                                            : 139
+
+=========================================================================
+
+=========================================================================
+*                           Partition Report                            *
+=========================================================================
+
+Partition Implementation Status
+-------------------------------
+
+  No Partitions were found in this design.
+
+-------------------------------
+
+=========================================================================
+*                            Final Report                               *
+=========================================================================
+Final Results
+RTL Top Level Output File Name     : LCD.ngr
+Top Level Output File Name         : LCD
+Output Format                      : NGC
+Optimization Goal                  : Speed
+Keep Hierarchy                     : No
+
+Design Statistics
+# IOs                              : 23
+
+Cell Usage :
+# BELS                             : 272
+#      GND                         : 1
+#      INV                         : 4
+#      LUT1                        : 16
+#      LUT2                        : 17
+#      LUT2_D                      : 3
+#      LUT2_L                      : 2
+#      LUT3                        : 52
+#      LUT3_D                      : 4
+#      LUT3_L                      : 2
+#      LUT4                        : 96
+#      LUT4_D                      : 6
+#      LUT4_L                      : 9
+#      MUXCY                       : 16
+#      MUXF5                       : 26
+#      VCC                         : 1
+#      XORCY                       : 17
+# FlipFlops/Latches                : 139
+#      FD                          : 7
+#      FDC                         : 31
+#      FDCE                        : 46
+#      FDE                         : 8
+#      FDP                         : 1
+#      FDPE                        : 11
+#      FDR                         : 25
+#      FDRE                        : 2
+#      FDRSE                       : 6
+#      FDS                         : 1
+#      FDSE                        : 1
+# Clock Buffers                    : 2
+#      BUFG                        : 1
+#      BUFGP                       : 1
+# IO Buffers                       : 22
+#      IBUF                        : 3
+#      OBUF                        : 19
+=========================================================================
+
+Device utilization summary:
+---------------------------
+
+Selected Device : 3s700anfgg484-4 
+
+ Number of Slices:                      143  out of   5888     2%  
+ Number of Slice Flip Flops:            139  out of  11776     1%  
+ Number of 4 input LUTs:                211  out of  11776     1%  
+ Number of IOs:                          23
+ Number of bonded IOBs:                  23  out of    372     6%  
+ Number of GCLKs:                         2  out of     24     8%  
+
+---------------------------
+Partition Resource Summary:
+---------------------------
+
+  No Partitions were found in this design.
+
+---------------------------
+
+
+=========================================================================
+TIMING REPORT
+
+NOTE: THESE TIMING NUMBERS ARE ONLY A SYNTHESIS ESTIMATE.
+      FOR ACCURATE TIMING INFORMATION PLEASE REFER TO THE TRACE REPORT
+      GENERATED AFTER PLACE-and-ROUTE.
+
+Clock Information:
+------------------
+-----------------------------------+------------------------+-------+
+Clock Signal                       | Clock buffer(FF name)  | Load  |
+-----------------------------------+------------------------+-------+
+CLKCOUNT_51                        | BUFG                   | 69    |
+CLK                                | BUFGP                  | 70    |
+-----------------------------------+------------------------+-------+
+
+Asynchronous Control Signals Information:
+----------------------------------------
+-----------------------------------+------------------------+-------+
+Control Signal                     | Buffer(FF name)        | Load  |
+-----------------------------------+------------------------+-------+
+RST                                | IBUF                   | 89    |
+-----------------------------------+------------------------+-------+
+
+Timing Summary:
+---------------
+Speed Grade: -4
+
+   Minimum period: 7.703ns (Maximum Frequency: 129.820MHz)
+   Minimum input arrival time before clock: 3.002ns
+   Maximum output required time after clock: 9.279ns
+   Maximum combinational path delay: No path found
+
+Timing Detail:
+--------------
+All values displayed in nanoseconds (ns)
+
+=========================================================================
+Timing constraint: Default period analysis for Clock 'CLKCOUNT_51'
+  Clock period: 7.703ns (frequency: 129.820MHz)
+  Total number of paths / destination ports: 2924 / 114
+-------------------------------------------------------------------------
+Delay:               7.703ns (Levels of Logic = 4)
+  Source:            COUNT_13 (FF)
+  Destination:       COUNT_0 (FF)
+  Source Clock:      CLKCOUNT_51 rising
+  Destination Clock: CLKCOUNT_51 rising
+
+  Data Path: COUNT_13 to COUNT_0
+                                Gate     Net
+    Cell:in->out      fanout   Delay   Delay  Logical Name (Net Name)
+    ----------------------------------------  ------------
+     FDR:C->Q              3   0.591   0.674  COUNT_13 (COUNT_13)
+     LUT3:I0->O            1   0.648   0.500  DELAYOK_or000098 (DELAYOK_or000098)
+     LUT4:I1->O            1   0.643   0.500  DELAYOK_or0000121 (DELAYOK_or0000121)
+     LUT4:I1->O            9   0.643   0.823  DELAYOK_or0000133 (DELAYOK_or0000133)
+     LUT4:I3->O           22   0.648   1.164  DELAYOK_or0000160 (DELAYOK)
+     FDR:R                     0.869          COUNT_0
+    ----------------------------------------
+    Total                      7.703ns (4.042ns logic, 3.661ns route)
+                                       (52.5% logic, 47.5% route)
+
+=========================================================================
+Timing constraint: Default period analysis for Clock 'CLK'
+  Clock period: 5.989ns (frequency: 166.973MHz)
+  Total number of paths / destination ports: 636 / 101
+-------------------------------------------------------------------------
+Delay:               5.989ns (Levels of Logic = 4)
+  Source:            KBC/PS2_RX_UNIT/FILTER_REG_3 (FF)
+  Destination:       KBC/PS2_RX_UNIT/B_REG_10 (FF)
+  Source Clock:      CLK rising
+  Destination Clock: CLK rising
+
+  Data Path: KBC/PS2_RX_UNIT/FILTER_REG_3 to KBC/PS2_RX_UNIT/B_REG_10
+                                Gate     Net
+    Cell:in->out      fanout   Delay   Delay  Logical Name (Net Name)
+    ----------------------------------------  ------------
+     FDC:C->Q              5   0.591   0.776  KBC/PS2_RX_UNIT/FILTER_REG_3 (KBC/PS2_RX_UNIT/FILTER_REG_3)
+     LUT2_L:I0->LO         1   0.648   0.180  KBC/PS2_RX_UNIT/FALL_EDGE11 (KBC/PS2_RX_UNIT/FALL_EDGE11)
+     LUT4:I1->O            5   0.643   0.713  KBC/PS2_RX_UNIT/FALL_EDGE16 (KBC/PS2_RX_UNIT/FALL_EDGE16)
+     LUT3_D:I1->O          9   0.643   0.900  KBC/PS2_RX_UNIT/N_REG_mux0000<3>23 (KBC/PS2_RX_UNIT/N4)
+     LUT4:I1->O            1   0.643   0.000  KBC/PS2_RX_UNIT/B_REG_mux0000<8>1 (KBC/PS2_RX_UNIT/B_REG_mux0000<8>)
+     FDC:D                     0.252          KBC/PS2_RX_UNIT/B_REG_8
+    ----------------------------------------
+    Total                      5.989ns (3.420ns logic, 2.569ns route)
+                                       (57.1% logic, 42.9% route)
+
+=========================================================================
+Timing constraint: Default OFFSET IN BEFORE for Clock 'CLKCOUNT_51'
+  Total number of paths / destination ports: 12 / 12
+-------------------------------------------------------------------------
+Offset:              3.002ns (Levels of Logic = 1)
+  Source:            RST (PAD)
+  Destination:       STCURW_FSM_FFd1 (FF)
+  Destination Clock: CLKCOUNT_51 rising
+
+  Data Path: RST to STCURW_FSM_FFd1
+                                Gate     Net
+    Cell:in->out      fanout   Delay   Delay  Logical Name (Net Name)
+    ----------------------------------------  ------------
+     IBUF:I->O           101   0.849   1.284  RST_IBUF (RST_IBUF)
+     FDS:S                     0.869          STCURW_FSM_FFd1
+    ----------------------------------------
+    Total                      3.002ns (1.718ns logic, 1.284ns route)
+                                       (57.2% logic, 42.8% route)
+
+=========================================================================
+Timing constraint: Default OFFSET IN BEFORE for Clock 'CLK'
+  Total number of paths / destination ports: 2 / 2
+-------------------------------------------------------------------------
+Offset:              2.201ns (Levels of Logic = 2)
+  Source:            PS2D (PAD)
+  Destination:       KBC/PS2_RX_UNIT/B_REG_10 (FF)
+  Destination Clock: CLK rising
+
+  Data Path: PS2D to KBC/PS2_RX_UNIT/B_REG_10
+                                Gate     Net
+    Cell:in->out      fanout   Delay   Delay  Logical Name (Net Name)
+    ----------------------------------------  ------------
+     IBUF:I->O             1   0.849   0.452  PS2D_IBUF (PS2D_IBUF)
+     LUT4:I2->O            1   0.648   0.000  KBC/PS2_RX_UNIT/B_REG_mux0000<10>1 (KBC/PS2_RX_UNIT/B_REG_mux0000<10>)
+     FDC:D                     0.252          KBC/PS2_RX_UNIT/B_REG_10
+    ----------------------------------------
+    Total                      2.201ns (1.749ns logic, 0.452ns route)
+                                       (79.5% logic, 20.5% route)
+
+=========================================================================
+Timing constraint: Default OFFSET OUT AFTER for Clock 'CLKCOUNT_51'
+  Total number of paths / destination ports: 128 / 17
+-------------------------------------------------------------------------
+Offset:              9.279ns (Levels of Logic = 5)
+  Source:            LCD_CMD_PTR_0 (FF)
+  Destination:       LCD_DB<5> (PAD)
+  Source Clock:      CLKCOUNT_51 rising
+
+  Data Path: LCD_CMD_PTR_0 to LCD_DB<5>
+                                Gate     Net
+    Cell:in->out      fanout   Delay   Delay  Logical Name (Net Name)
+    ----------------------------------------  ------------
+     FDRSE:C->Q           31   0.591   1.405  LCD_CMD_PTR_0 (LCD_CMD_PTR_0)
+     LUT4:I0->O            1   0.648   0.000  Mmux_RS_varindex00001634_SW02 (Mmux_RS_varindex00001634_SW01)
+     MUXF5:I0->O           1   0.276   0.500  Mmux_RS_varindex00001634_SW0_f5 (N96)
+     LUT4:I1->O            1   0.643   0.000  Mmux_RS_varindex000016109_F (N114)
+     MUXF5:I0->O           1   0.276   0.420  Mmux_RS_varindex000016109 (LCD_DB_5_OBUF)
+     OBUF:I->O                 4.520          LCD_DB_5_OBUF (LCD_DB<5>)
+    ----------------------------------------
+    Total                      9.279ns (6.954ns logic, 2.325ns route)
+                                       (74.9% logic, 25.1% route)
+
+=========================================================================
+
+
+Total REAL time to Xst completion: 5.00 secs
+Total CPU time to Xst completion: 5.60 secs
+ 
+--> 
+
+
+Total memory usage is 620400 kilobytes
+
+Number of errors   :    0 (   0 filtered)
+Number of warnings :   53 (   0 filtered)
+Number of infos    :   27 (   0 filtered)
+

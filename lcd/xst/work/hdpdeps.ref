@@ -1,0 +1,22 @@
+V3 13
+FL /home/sd/lcd/fifo.vhd 2025/07/08.15:36:48 P.20131013
+EN work/FIFO 1752004660 FL /home/sd/lcd/fifo.vhd PB ieee/std_logic_1164 1381692176 \
+      PB ieee/NUMERIC_STD 1381692181
+AR work/FIFO/ARCH 1752004661 \
+      FL /home/sd/lcd/fifo.vhd EN work/FIFO 1752004660
+FL /home/sd/lcd/kb_code.vhd 2025/07/08.15:36:50 P.20131013
+EN work/KB_CODE 1752004662 FL /home/sd/lcd/kb_code.vhd PB ieee/std_logic_1164 1381692176 \
+      PB ieee/NUMERIC_STD 1381692181
+AR work/KB_CODE/ARCH 1752004663 \
+      FL /home/sd/lcd/kb_code.vhd EN work/KB_CODE 1752004662 AR work/PS2_RX/ARCH 1752004659 \
+      AR work/FIFO/ARCH 1752004661
+FL /home/sd/lcd/lcd.vhd 2025/07/08.16:57:30 P.20131013
+EN work/LCD 1752004664 FL /home/sd/lcd/lcd.vhd PB ieee/std_logic_1164 1381692176 \
+      PB ieee/std_logic_arith 1381692177 PB ieee/STD_LOGIC_UNSIGNED 1381692179
+AR work/LCD/BEHAVIORAL 1752004665 \
+      FL /home/sd/lcd/lcd.vhd EN work/LCD 1752004664 CP KB_CODE
+FL /home/sd/lcd/ps2_rx.vhd 2025/07/08.15:36:50 P.20131013
+EN work/PS2_RX 1752004658 FL /home/sd/lcd/ps2_rx.vhd PB ieee/std_logic_1164 1381692176 \
+      PB ieee/NUMERIC_STD 1381692181
+AR work/PS2_RX/ARCH 1752004659 \
+      FL /home/sd/lcd/ps2_rx.vhd EN work/PS2_RX 1752004658

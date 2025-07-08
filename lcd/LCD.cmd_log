@@ -1,0 +1,40 @@
+xst -intstyle ise -ifn "/home/sd/lcd/LCD.xst" -ofn "/home/sd/lcd/LCD.syr" 
+xst -intstyle ise -ifn "/home/sd/lcd/LCD.xst" -ofn "/home/sd/lcd/LCD.syr" 
+ngdbuild -intstyle ise -dd _ngo -nt timestamp -uc lcd.ucf -p xc7a100t-csg324-3 LCD.ngc LCD.ngd  
+map -intstyle ise -p xc7a100t-csg324-3 -w -logic_opt off -ol high -t 1 -xt 0 -register_duplication off -r 4 -mt off -ir off -pr off -lc off -power off -o LCD_map.ncd LCD.ngd LCD.pcf 
+xst -intstyle ise -ifn "/home/sd/lcd/LCD.xst" -ofn "/home/sd/lcd/LCD.syr" 
+ngdbuild -intstyle ise -dd _ngo -nt timestamp -uc lcd.ucf -p xc7a100t-csg324-3 LCD.ngc LCD.ngd  
+map -intstyle ise -p xc7a100t-csg324-3 -w -logic_opt off -ol high -t 1 -xt 0 -register_duplication off -r 4 -mt off -ir off -pr off -lc off -power off -o LCD_map.ncd LCD.ngd LCD.pcf 
+xst -intstyle ise -ifn "/home/sd/lcd/LCD.xst" -ofn "/home/sd/lcd/LCD.syr" 
+ngdbuild -intstyle ise -dd _ngo -nt timestamp -uc lcd.ucf -p xc7a100t-csg324-3 LCD.ngc LCD.ngd  
+map -intstyle ise -p xc7a100t-csg324-3 -w -logic_opt off -ol high -t 1 -xt 0 -register_duplication off -r 4 -mt off -ir off -pr off -lc off -power off -o LCD_map.ncd LCD.ngd LCD.pcf 
+xst -intstyle ise -ifn "/home/sd/lcd/LCD.xst" -ofn "/home/sd/lcd/LCD.syr" 
+ngdbuild -intstyle ise -dd _ngo -nt timestamp -uc lcd.ucf -p xc3s700an-fgg484-4 LCD.ngc LCD.ngd  
+map -intstyle ise -p xc3s700an-fgg484-4 -cm area -ir off -pr off -c 100 -o LCD_map.ncd LCD.ngd LCD.pcf 
+par -w -intstyle ise -ol high -t 1 LCD_map.ncd LCD.ncd LCD.pcf 
+trce -intstyle ise -v 3 -s 4 -n 3 -fastpaths -xml LCD.twx LCD.ncd -o LCD.twr LCD.pcf -ucf lcd.ucf 
+bitgen -intstyle ise -f LCD.ut LCD.ncd 
+xst -intstyle ise -ifn "/home/sd/lcd/LCD.xst" -ofn "/home/sd/lcd/LCD.syr" 
+ngdbuild -intstyle ise -dd _ngo -nt timestamp -uc lcd.ucf -p xc3s700an-fgg484-4 LCD.ngc LCD.ngd  
+map -intstyle ise -p xc3s700an-fgg484-4 -cm area -ir off -pr off -c 100 -o LCD_map.ncd LCD.ngd LCD.pcf 
+par -w -intstyle ise -ol high -t 1 LCD_map.ncd LCD.ncd LCD.pcf 
+trce -intstyle ise -v 3 -s 4 -n 3 -fastpaths -xml LCD.twx LCD.ncd -o LCD.twr LCD.pcf -ucf lcd.ucf 
+bitgen -intstyle ise -f LCD.ut LCD.ncd 
+xst -intstyle ise -ifn "/home/sd/lcd/LCD.xst" -ofn "/home/sd/lcd/LCD.syr" 
+ngdbuild -intstyle ise -dd _ngo -nt timestamp -uc lcd.ucf -p xc3s700an-fgg484-4 LCD.ngc LCD.ngd  
+map -intstyle ise -p xc3s700an-fgg484-4 -cm area -ir off -pr off -c 100 -o LCD_map.ncd LCD.ngd LCD.pcf 
+par -w -intstyle ise -ol high -t 1 LCD_map.ncd LCD.ncd LCD.pcf 
+trce -intstyle ise -v 3 -s 4 -n 3 -fastpaths -xml LCD.twx LCD.ncd -o LCD.twr LCD.pcf -ucf lcd.ucf 
+bitgen -intstyle ise -f LCD.ut LCD.ncd 
+xst -intstyle ise -ifn "/home/sd/lcd/LCD.xst" -ofn "/home/sd/lcd/LCD.syr" 
+ngdbuild -intstyle ise -dd _ngo -nt timestamp -uc lcd.ucf -p xc3s700an-fgg484-4 LCD.ngc LCD.ngd  
+map -intstyle ise -p xc3s700an-fgg484-4 -cm area -ir off -pr off -c 100 -o LCD_map.ncd LCD.ngd LCD.pcf 
+par -w -intstyle ise -ol high -t 1 LCD_map.ncd LCD.ncd LCD.pcf 
+trce -intstyle ise -v 3 -s 4 -n 3 -fastpaths -xml LCD.twx LCD.ncd -o LCD.twr LCD.pcf -ucf lcd.ucf 
+bitgen -intstyle ise -f LCD.ut LCD.ncd 
+xst -intstyle ise -ifn "/home/sd/lcd/LCD.xst" -ofn "/home/sd/lcd/LCD.syr" 
+ngdbuild -intstyle ise -dd _ngo -nt timestamp -uc lcd.ucf -p xc3s700an-fgg484-4 LCD.ngc LCD.ngd  
+map -intstyle ise -p xc3s700an-fgg484-4 -cm area -ir off -pr off -c 100 -o LCD_map.ncd LCD.ngd LCD.pcf 
+par -w -intstyle ise -ol high -t 1 LCD_map.ncd LCD.ncd LCD.pcf 
+trce -intstyle ise -v 3 -s 4 -n 3 -fastpaths -xml LCD.twx LCD.ncd -o LCD.twr LCD.pcf -ucf lcd.ucf 
+bitgen -intstyle ise -f LCD.ut LCD.ncd 
