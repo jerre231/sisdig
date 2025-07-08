@@ -1,124 +1,108 @@
--- O fifo age como um "buffer" que segura os dados recebidos até que o sistema principal esteja pronto para processá-los.
-
-library IEEE;
-use IEEE.STD_LOGIC_1164.all;
-use IEEE.NUMERIC_STD.all;
-
-entity fifo is                                --Com W = 2, a FIFO comporta 4 elementos. Com B = 8, cada elemento tem 8 bits (1 byte).
-   generic(
-      b: natural := 8; -- número de bits
-      w: natural := 4  -- número de bits de endereço → profundidade = 2^w
+LIBRARY IEEE;
+USE IEEE.STD_LOGIC_1164.ALL;
+USE IEEE.NUMERIC_STD.ALL;
+ENTITY FIFO IS
+   GENERIC(
+      B: NATURAL:=8; -- NUMBER OF BITS
+      W: NATURAL:=4 -- NUMBER OF ADDRESS BITS
    );
-   port(
-      clk, reset: in std_logic;
-      rd, wr: in std_logic;
-      w_data: in std_logic_vector(b-1 downto 0);  --dado de entrada
-      empty, full: out std_logic;
-      r_data: out std_logic_vector(b-1 downto 0) --dado de saída
+   PORT(
+      CLK, RESET: IN STD_LOGIC;
+      RD, WR: IN STD_LOGIC;
+      W_DATA: IN STD_LOGIC_VECTOR (B-1 DOWNTO 0);
+      EMPTY, FULL: OUT STD_LOGIC;
+      R_DATA: OUT STD_LOGIC_VECTOR (B-1 DOWNTO 0)
    );
-end fifo;
+END FIFO;
 
-architecture arch of fifo is
-   type reg_file_type is array (2**w - 1 downto 0) of  --Cria a memória da FIFO como um vetor de vetores (2^W posições de B bits cada).
-        std_logic_vector(b-1 downto 0);
-   signal array_reg: reg_file_type;
-
-   signal w_ptr_reg, w_ptr_next, w_ptr_succ:         --São os ponteiros de escrita e leitura (endereços da FIFO).
-      std_logic_vector(w-1 downto 0);
-   signal r_ptr_reg, r_ptr_next, r_ptr_succ:
-      std_logic_vector(w-1 downto 0);
-
-   signal full_reg, empty_reg, full_next, empty_next: --Flags internas da FIFO.
-          std_logic;
-   signal wr_op: std_logic_vector(1 downto 0);
-   signal wr_en: std_logic;                          --Ativa escrita apenas se FIFO não estiver cheia.
-begin
-
-
-  
+ARCHITECTURE ARCH OF FIFO IS
+   TYPE REG_FILE_TYPE IS ARRAY (2**W-1 DOWNTO 0) OF
+        STD_LOGIC_VECTOR(B-1 DOWNTO 0);
+   SIGNAL ARRAY_REG: REG_FILE_TYPE;
+   SIGNAL W_PTR_REG, W_PTR_NEXT, W_PTR_SUCC:
+      STD_LOGIC_VECTOR(W-1 DOWNTO 0);
+   SIGNAL R_PTR_REG, R_PTR_NEXT, R_PTR_SUCC:
+      STD_LOGIC_VECTOR(W-1 DOWNTO 0);
+   SIGNAL FULL_REG, EMPTY_REG, FULL_NEXT, EMPTY_NEXT:
+          STD_LOGIC;
+   SIGNAL WR_OP: STD_LOGIC_VECTOR(1 DOWNTO 0);
+   SIGNAL WR_EN: STD_LOGIC;
+BEGIN
    --=================================================
-   -- REGISTRO DE DADOS (MEMÓRIA)
+   -- REGISTER FILE
    --=================================================
-  
-   process(clk, reset)
-   begin                                                      --Grava W_DATA na posição indicada por W_PTR_REG, somente se não estiver cheia.
-     if (reset = '1') then
-        array_reg <= (others => (others => '0'));
-     elsif (clk'event and clk = '1') then
-        if wr_en = '1' then
-           array_reg(to_integer(unsigned(w_ptr_reg)))
-                 <= w_data;
-        end if;
-     end if;
-   end process;
-       
-   -- leitura combinacional
-   r_data <= array_reg(to_integer(unsigned(r_ptr_reg)));
+   PROCESS(CLK,RESET)
+   BEGIN
+     IF (RESET='1') THEN
+        ARRAY_REG <= (OTHERS=>(OTHERS=>'0'));
+     ELSIF (CLK'EVENT AND CLK='1') THEN
+        IF WR_EN='1' THEN
+           ARRAY_REG(TO_INTEGER(UNSIGNED(W_PTR_REG)))
+                 <= W_DATA;
+        END IF;
+     END IF;
+   END PROCESS;
+   -- READ PORT
+   R_DATA <= ARRAY_REG(TO_INTEGER(UNSIGNED(R_PTR_REG)));
+   -- WRITE ENABLED ONLY WHEN FIFO IS NOT FULL
+   WR_EN <= WR AND (NOT FULL_REG);
 
-   -- escrita apenas se fifo não estiver cheia
-   wr_en <= wr and (not full_reg);
-
-
-       
    --=================================================
-   -- LÓGICA DE CONTROLE FIFO
+   -- LOGICA DE CONTROLE FIFO
    --=================================================
-       
-   process(clk, reset)                                --Atualiza os ponteiros e flags em cada ciclo de clock, ou zera tudo no reset.
-   begin
-      if (reset = '1') then
-         w_ptr_reg <= (others => '0');
-         r_ptr_reg <= (others => '0');
-         full_reg <= '0';
-         empty_reg <= '1';
-      elsif (clk'event and clk = '1') then
-         w_ptr_reg <= w_ptr_next;
-         r_ptr_reg <= r_ptr_next;
-         full_reg <= full_next;
-         empty_reg <= empty_next;
-      end if;
-   end process;
+   -- ESCRITA DE PONTEIROS (MEMORIA)
+   PROCESS(CLK,RESET)
+   BEGIN
+      IF (RESET='1') THEN
+         W_PTR_REG <= (OTHERS=>'0');
+         R_PTR_REG <= (OTHERS=>'0');
+         FULL_REG <= '0';
+         EMPTY_REG <= '1';
+      ELSIF (CLK'EVENT AND CLK='1') THEN
+         W_PTR_REG <= W_PTR_NEXT;
+         R_PTR_REG <= R_PTR_NEXT;
+         FULL_REG <= FULL_NEXT;
+         EMPTY_REG <= EMPTY_NEXT;
+      END IF;
+   END PROCESS;
 
-   -- incrementos circulares
-   w_ptr_succ <= std_logic_vector(unsigned(w_ptr_reg) + 1);
-   r_ptr_succ <= std_logic_vector(unsigned(r_ptr_reg) + 1);
+   -- VALORES SUCESSIVOS DE PONTEIRO
+   W_PTR_SUCC <= STD_LOGIC_VECTOR(UNSIGNED(W_PTR_REG)+1);
+   R_PTR_SUCC <= STD_LOGIC_VECTOR(UNSIGNED(R_PTR_REG)+1);
 
-   -- lógica de próximo estado
-   wr_op <= wr & rd;
-   process(w_ptr_reg, w_ptr_succ, r_ptr_reg, r_ptr_succ, wr_op,
-           empty_reg, full_reg)
-   begin
-      w_ptr_next <= w_ptr_reg;
-      r_ptr_next <= r_ptr_reg;
-      full_next <= full_reg;
-      empty_next <= empty_reg;
-
-      case wr_op is
-         when "00" => -- nenhuma operação
-            null;
-         when "01" => -- leitura
-            if (empty_reg /= '1') then
-               r_ptr_next <= r_ptr_succ;
-               full_next <= '0';
-               if (r_ptr_succ = w_ptr_reg) then
-                  empty_next <= '1';
-               end if;
-            end if;
-         when "10" => -- escrita
-            if (full_reg /= '1') then
-               w_ptr_next <= w_ptr_succ;
-               empty_next <= '0';
-               if (w_ptr_succ = r_ptr_reg) then
-                  full_next <= '1';
-               end if;
-            end if;
-         when others => -- leitura + escrita simultânea
-            w_ptr_next <= w_ptr_succ;
-            r_ptr_next <= r_ptr_succ;
-      end case;
-   end process;
-
-   -- saídas
-   full <= full_reg;
-   empty <= empty_reg;
-end arch;
+   -- LEITURA E ESCRITA DE PONTEIROS PARA LOGICA DO PROXIMO ESTADO
+   WR_OP <= WR & RD;
+   PROCESS(W_PTR_REG,W_PTR_SUCC,R_PTR_REG,R_PTR_SUCC,WR_OP,
+           EMPTY_REG,FULL_REG)
+   BEGIN
+      W_PTR_NEXT <= W_PTR_REG;
+      R_PTR_NEXT <= R_PTR_REG;
+      FULL_NEXT <= FULL_REG;
+      EMPTY_NEXT <= EMPTY_REG;
+      CASE WR_OP IS
+         WHEN "00" => -- NO OP
+         WHEN "01" => -- READ
+            IF (EMPTY_REG /= '1') THEN -- NOT EMPTY
+               R_PTR_NEXT <= R_PTR_SUCC;
+               FULL_NEXT <= '0';
+               IF (R_PTR_SUCC=W_PTR_REG) THEN
+                  EMPTY_NEXT <='1';
+               END IF;
+            END IF;
+         WHEN "10" => -- WRITE
+            IF (FULL_REG /= '1') THEN -- NOT FULL
+               W_PTR_NEXT <= W_PTR_SUCC;
+               EMPTY_NEXT <= '0';
+               IF (W_PTR_SUCC=R_PTR_REG) THEN
+                  FULL_NEXT <='1';
+               END IF;
+            END IF;
+         WHEN OTHERS => -- WRITE/READ;
+            W_PTR_NEXT <= W_PTR_SUCC;
+            R_PTR_NEXT <= R_PTR_SUCC;
+      END CASE;
+   END PROCESS;
+   -- SAIDA
+   FULL <= FULL_REG;
+   EMPTY <= EMPTY_REG;
+END ARCH;

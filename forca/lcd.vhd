@@ -1,443 +1,451 @@
---OBJ. do lcd:
---Controlar o display LCD para mostrar informações, enviando comandos e dados com o timing correto.
---Ler dados do teclado PS/2 para interagir com o jogo.
---Implementar um jogo da forca básico:
---A palavra “projeto” está "escondida" com pontos no display.
---Quando o jogador digita uma letra correta no teclado, ela aparece no LCD.
---Ao errar demais, aparece uma mensagem de "HAHAHA" (perdeu).
---Controlar os estados e temporizações necessárias para a comunicação correta com o LCD e a leitura do teclado.
+LIBRARY IEEE;
+USE IEEE.STD_LOGIC_1164.ALL;
+USE IEEE.STD_LOGIC_ARITH.ALL;
+USE IEEE.STD_LOGIC_UNSIGNED.ALL;
 
+ENTITY LCD IS
+    PORT(LCD_DB: OUT STD_LOGIC_VECTOR(7 DOWNTO 0); -- Barramento de dados do LCD (8 bits)
+         RS:OUT STD_LOGIC; -- Pino Register Select (0 para comando, 1 para dado)
+         RW:OUT STD_LOGIC; -- Pino Read/Write (0 para escrever, 1 para ler - aqui sempre escrevendo)
+         CLK:IN STD_LOGIC; -- Sinal de clock principal da FPGA
+         OE:OUT STD_LOGIC; -- Pino Enable do LCD (ativo em nível baixo para escrita)
+         RST:IN STD_LOGIC; -- Sinal de Reset assíncrono
+         LEDS : OUT STD_LOGIC_VECTOR (7 DOWNTO 0); -- Saída para LEDs (para depuração, mostra o keycode)
+         PS2D, PS2C: IN STD_LOGIC); -- Pinos de dados e clock do teclado PS/2
+END LCD;
 
+ARCHITECTURE BEHAVIORAL OF LCD IS
 
-library IEEE;
-use IEEE.STD_LOGIC_1164.all;
-use IEEE.STD_LOGIC_ARITH.all;
-use IEEE.STD_LOGIC_UNSIGNED.all;
+------------------------------------------------------------------
+--  INSTANCIAR COMPONENTES
+------------------------------------------------------------------
+-- Componente para interface com o teclado PS/2
+COMPONENT KB_CODE PORT(CLK, RESET: IN  STD_LOGIC; -- Clock e Reset para o teclado
+                       PS2D, PS2C: IN  STD_LOGIC; -- Dados e Clock do PS/2
+                       RD_KEY_CODE: IN STD_LOGIC; -- Sinal para liberar o buffer do teclado
+                       KEY_CODE: OUT STD_LOGIC_VECTOR(7 DOWNTO 0);-- Código da tecla lida no buffer
+                       KB_BUF_EMPTY: OUT STD_LOGIC); -- Indica se o buffer do teclado está vazio (0 se tem tecla)
+END COMPONENT KB_CODE;
 
-entity lcd is
-    port(
-        lcd_db: out std_logic_vector(7 downto 0); -- dados para o display lcd
-        rs: out std_logic;  -- registro select: 0 comando, 1 dado
-        rw: out std_logic;  -- read/write: 0 escreve, 1 lê
-        clk: in std_logic;  -- clock do sistema
-        oe: out std_logic;  -- output enable para controle do lcd
-        rst: in std_logic;  -- reset síncrono
-        leds : out std_logic_vector (7 downto 0); -- leds indicadores para debug
-        ps2d, ps2c: in std_logic  -- dados e clock do teclado ps2
-    );
-end lcd;
+------------------------------------------------------------------
+--  DECLARAÇÕES
+-----------------------------------------------------------------
 
-architecture behavioral of lcd is
+-- Tipos de estado para a Máquina de Estados de Controle do LCD
+TYPE MSTATE IS (STFUNCTIONSET,          -- Estado para enviar o comando Function Set
+                STDISPLAYCTRLSET,       -- Estado para enviar o comando Display Control Set
+                STDISPLAYCLEAR,         -- Estado para enviar o comando Clear Display
+                STPOWERON_DELAY,        -- Estado de atraso inicial após ligar
+                STFUNCTIONSET_DELAY,    -- Atraso após Function Set
+                STDISPLAYCTRLSET_DELAY, -- Atraso após Display Control Set
+                STDISPLAYCLEAR_DELAY,   -- Atraso após Clear Display
+                STINITDNE,              -- Estado de inicialização concluída
+                STACTWR,                -- Estado para ativar a escrita no LCD
+                STCHARDELAY);           -- Atraso após escrita de caractere/comando
 
---==================================================================
--- DEFINIÇÃO DOS COMPONENTES
---=====================================================================
-component kb_code port(
-    clk, reset: in std_logic; -- clock e reset do fpga
-    ps2d, ps2c: in std_logic;  -- interface ps2
-    rd_key_code: in std_logic; -- sinal para liberar leitura do buffer
-    key_code: out std_logic_vector(7 downto 0); -- código da tecla lida
-    kb_buf_empty: out std_logic -- sinal indicando buffer vazio
-);
-end component kb_code;
+-- Tipos de estado para a Máquina de Estados de Controle de Escrita (Enable)
+TYPE WSTATE IS (STRW,                   -- Estado para configurar RW
+                STENABLE,               -- Estado para pulsar o Enable
+                STIDLE);                -- Estado ocioso
 
---=========================================================
---  DEFINIÇÕES DE TIPOS DE SINAIS
---=============================================================
+-- Tipos de estado para o "Jogo da Forca" (não totalmente implementado como jogo completo)
+TYPE JESTADOS IS (JESPERA,              -- Estado de espera
+                  JACERTO,              -- Estado de acerto
+                  JERRO,                -- Estado de erro
+                  JPERDE);              -- Estado de perda
 
--- estados da máquina de controle principal do lcd
-type mstate is (
-    stfunctionset,		 	
-    stdisplayctrlset,
-    stdisplayclear,
-    stpoweron_delay,  				
-    stfunctionset_delay,
-    stdisplayctrlset_delay, 	
-    stdisplayclear_delay,
-    stinitdne,				
-    stactwr,
-    stchardelay
-);
+-- Tipos de estado para a Máquina de Estados de Leitura do Teclado
+TYPE MLEITOR IS (MINICIAL,              -- Estado inicial (espera por tecla)
+                MMEIO,                  -- Estado intermediário (tecla lida)
+                MFINAL);                -- Estado final (processamento da tecla)
 
--- estados da máquina de controle da escrita no lcd
-type wstate is (
-    strw,						
-    stenable,				
-    stidle
-);
+SIGNAL CLKCOUNT:STD_LOGIC_VECTOR(5 DOWNTO 0); -- Contador para gerar um clock de 1us
+SIGNAL ACTIVATEW:STD_LOGIC:= '0'; -- Sinal para ativar a máquina de estados de escrita do LCD
+SIGNAL COUNT:STD_LOGIC_VECTOR (16 DOWNTO 0):= "00000000000000000"; -- Contador de atraso para o LCD
+SIGNAL DELAYOK:STD_LOGIC:= '0';  -- Sinal que indica que o atraso necessário foi atingido
+SIGNAL ONEUSCLK:STD_LOGIC;       -- Clock de 1us (derivado do CLK principal)
+SIGNAL STCUR:MSTATE:= STPOWERON_DELAY; -- Estado atual da máquina de estados do LCD
+SIGNAL JATUAL:JESTADOS:= JESPERA; -- Estado atual do jogo (não totalmente usado)
+SIGNAL JNEXT:JESTADOS;           -- Próximo estado do jogo
+SIGNAL STNEXT:MSTATE;            -- Próximo estado da máquina de estados do LCD
+SIGNAL MATUAL: MLEITOR:= MINICIAL; -- Estado atual da máquina de estados de leitura do teclado
+SIGNAL STCURW:WSTATE:= STIDLE;   -- Estado atual da máquina de estados de escrita (Enable)
+SIGNAL STNEXTW:WSTATE;           -- Próximo estado da máquina de estados de escrita (Enable)
+SIGNAL WRITEDONE:STD_LOGIC:= '0'; -- Indica se todos os comandos iniciais do LCD foram escritos
+SIGNAL LIBERABUF : STD_LOGIC := '0'; -- Sinal para liberar o buffer do teclado (RD_KEY_CODE)
+SIGNAL KEYREAD : STD_LOGIC_VECTOR (7 DOWNTO 0):= "00000000"; -- Código da tecla lida e processada
+SIGNAL KEYBUFFER : STD_LOGIC_VECTOR (7 DOWNTO 0); -- Código da tecla vindo do componente KB_CODE
+SIGNAL BUFEMPTY : STD_LOGIC ; -- Indica se o buffer do teclado está vazio (0 = não vazio)
+SIGNAL ERROCOUNT: UNSIGNED (3 DOWNTO 0):= "0000"; -- Contador de erros no jogo da forca
+SIGNAL TECLOU : STD_LOGIC := '0'; -- Sinal que indica que uma tecla foi pressionada
+SIGNAL LEU : STD_LOGIC := '0'; -- Sinal que indica que a tecla foi lida e processada
+SIGNAL PERDEU : STD_LOGIC_VECTOR (7 DOWNTO 0):= "11111111"; -- Sinal não utilizado diretamente, mas pode ser para futuras expansões
 
--- estados do jogo (espera, acerto, erro, perdeu)
-type jestados is (
-    jespera,
-    jacerto,
-    jerro,
-    jperde
-);
-
--- estados do leitor do buffer do teclado
-type mleitor is (
-    minicial,
-    mmeio,
-    mfinal
-);
-
--- sinais de controle e dados internos
-signal clkcount: std_logic_vector(5 downto 0);                      -- contador para gerar pulso de 1us
-signal activatew: std_logic := '0';                                 -- habilita escrita no lcd
-signal count: std_logic_vector(16 downto 0) := (others => '0');     -- contador para delays maiores
-signal delayok: std_logic := '0';                                   -- sinalizador de término do delay atual
-signal oneusclk: std_logic;                                         -- pulso com período de 1us para temporização
-
-signal stcur: mstate := stpoweron_delay;                             -- estado atual da máquina principal do lcd
-signal stnext: mstate;                                               -- próximo estado da máquina principal do lcd
-
-signal stcurw: wstate := stidle;                                     -- estado atual da máquina de controle de escrita
-signal stnextw: wstate;                                              -- próximo estado da máquina de controle de escrita
-
-signal lcd_cmd_ptr: integer range 0 to 14 := 0;                      -- ponteiro para comandos da lcd
-
-signal writedone: std_logic := '0';                                  -- sinaliza que terminou de enviar comandos para o lcd
-
--- sinais para interface com teclado ps2
-signal liberabuf: std_logic := '0';                                      -- libera leitura do buffer do teclado
-signal keyread: std_logic_vector(7 downto 0) := (others => '0');         -- tecla lida pelo sistema
-signal keybuffer: std_logic_vector(7 downto 0);                          -- tecla armazenada no buffer do teclado
-signal bufempty: std_logic;                                              -- indica se o buffer do teclado está vazio
-
--- controle do jogo da forca
-signal errocount: unsigned(3 downto 0) := (others => '0');                 -- contador de erros
-signal teclou: std_logic := '0';                                           -- sinaliza que uma tecla foi lida
-signal leu: std_logic := '0';                                          -- sinaliza que a leitura da tecla foi consumida
-
-signal matual: mleitor := minicial;
-
-type show_t is array (integer range 0 to 5) of std_logic_vector(9 downto 0);
-signal show: show_t := (
-    0 => "10" & x"2e",                                                       -- inicializa com pontos para esconder palavra
-    1 => "10" & x"2e",
-    2 => "10" & x"2e",
-    3 => "10" & x"2e",
-    4 => "10" & x"2e",
-    5 => "10" & x"2e"
+-- Array para armazenar os caracteres a serem exibidos no LCD para a palavra "SISTEMA"
+-- Cada elemento é um STD_LOGIC_VECTOR(9 DOWNTO 0), onde os dois bits mais significativos
+-- indicam o tipo (00 para comando, 10 para dado) e os 8 bits restantes são o dado/comando.
+TYPE SHOW_T IS ARRAY(INTEGER RANGE 0 TO 6) OF STD_LOGIC_VECTOR(9 DOWNTO 0);
+SIGNAL SHOW : SHOW_T := (
+-- Inicializando com pontos (ASCII X"2E") para ocultar a palavra "SISTEMA"
+0 => "10"&X"2E", -- Posição 0 (S)
+1 => "10"&X"2E", -- Posição 1 (I)
+2 => "10"&X"2E", -- Posição 2 (S)
+3 => "10"&X"2E", -- Posição 3 (T)
+4 => "10"&X"2E", -- Posição 4 (E)
+5 => "10"&X"2E", -- Posição 5 (M)
+6 => "10"&X"2E"  -- Posição 6 (A)
 );
 
--- comandos para o lcd (função e caracteres)
-type lcd_cmds_t is array(integer range 0 to 13) of std_logic_vector(9 downto 0);
-signal lcd_cmds: lcd_cmds_t := (
-    0 => "00" & x"3c",                     -- função set lcd
-    1 => "00" & x"0c",                     -- display on, cursor off, blink off
-    2 => "00" & x"01",                     -- limpa display
-    3 => "00" & x"02",                     -- return home
-    4 => "10" & x"48",                     -- H (exemplo de caractere)
-    5 => "10" & x"65",                     -- E
-    6 => "10" & x"6c",                     -- L
-    7 => "10" & x"6c",                     -- L
-    8 => "10" & x"6f",                     -- O
-    9 => "10" & x"20",                     -- espaço
-    10 => "10" & x"46",                    -- F
-    11 => "10" & x"72",                    -- R
-    12 => "10" & x"72",                    -- R
-    13 => "10" & x"72"                     -- R
-);
+-- Array para armazenar a sequência de comandos e dados a serem enviados ao LCD
+TYPE LCD_CMDS_T IS ARRAY(INTEGER RANGE 0 TO 13) OF STD_LOGIC_VECTOR(9 DOWNTO 0);
+SIGNAL LCD_CMDS : LCD_CMDS_T := (
+0 => "00"&X"3C",            -- Comando: Function Set (8 bits, 2 linhas, fonte 5x8)
+1 => "00"&X"0C",            -- Comando: Display On, Cursor Off, Blink Off
+2 => "00"&X"01",            -- Comando: Clear Display
+3 => "00"&X"02",            -- Comando: Return Home (cursor para 0x00)
 
-begin
+-- Mapeamento dos caracteres da palavra "SISTEMA" para o array de comandos/dados do LCD
+-- Estes serão atualizados dinamicamente pelo processo do jogo da forca
+4 => "10"&X"53",            -- S (placeholder, será atualizado por SHOW(0))
+5 => "10"&X"49",            -- I (placeholder, será atualizado por SHOW(1))
+6 => "10"&X"53",            -- S (placeholder, será atualizado por SHOW(2))
+7 => "10"&X"54",            -- T (placeholder, será atualizado por SHOW(3))
+8 => "10"&X"45",            -- E (placeholder, será atualizado por SHOW(4))
+9 => "10"&X"4D",            -- M (placeholder, será atualizado por SHOW(5))
+10 => "10"&X"41",           -- A (placeholder, será atualizado por SHOW(6))
 
--- leds indicam o código da tecla lida (para debug)
-leds <= keyread;
+11 => "1000100000",         -- Um caractere ou comando fixo (ex: espaço ou outro símbolo)
+12 => "10"&"0011"&(STD_LOGIC_VECTOR(ERROCOUNT)), -- Exibe o contador de erros (ASCII '0' + ERROCOUNT)
+13 => "00"&X"02");          -- Comando: Return Home (para reposicionar o cursor)
 
--- atualiza comandos da lcd com a palavra a ser mostrada (ex: projeto)
-lcd_cmds(4) <= show(0);
-lcd_cmds(5) <= show(1);
-lcd_cmds(6) <= show(2);
-lcd_cmds(7) <= show(3);
-lcd_cmds(8) <= show(4);
-lcd_cmds(9) <= show(5);
-lcd_cmds(10) <= show(2);
+SIGNAL LCD_CMD_PTR : INTEGER RANGE 0 TO LCD_CMDS'HIGH + 1 := 0; -- Ponteiro para o comando/dado atual no array LCD_CMDS
+BEGIN
+-- Mapeamento dos bits do KEYREAD para os LEDs de depuração
+LEDS(0) <= KEYREAD(0);
+LEDS(1) <= KEYREAD(1);
+LEDS(2) <= KEYREAD(2);
+LEDS(3) <= KEYREAD(3);
+LEDS(4) <= KEYREAD(4);
+LEDS(5) <= KEYREAD(5);
+LEDS(6) <= KEYREAD(6);
+LEDS(7) <= KEYREAD(7);
 
--- instanciando o componente de leitura do teclado ps2
-kbc: kb_code port map(clk, rst, ps2d, ps2c, liberabuf, keybuffer, bufempty);
+-- Re-atribuição dos comandos iniciais do LCD (redundante, mas garante os valores)
+LCD_CMDS(0) <= "00"&X"3C"; -- Function Set
+LCD_CMDS(1) <= "00"&X"0C"; -- Display On
+LCD_CMDS(2) <= "00"&X"01"; -- Clear Display
+LCD_CMDS(3) <= "00"&X"02"; -- Return Home
 
--- contador para gerar pulso de 1us a partir do clock principal
-process(clk)
-begin
-    if rising_edge(clk) then
-        clkcount <= clkcount + 1;
-    end if;
-end process;
+-- Mapeamento dinâmico dos elementos de SHOW para os comandos de exibição no LCD_CMDS
+-- Isso permite que a palavra oculta seja revelada no LCD
+LCD_CMDS(4) <= SHOW(0); -- Caractere na posição 0 da palavra
+LCD_CMDS(5) <= SHOW(1); -- Caractere na posição 1 da palavra
+LCD_CMDS(6) <= SHOW(2); -- Caractere na posição 2 da palavra
+LCD_CMDS(7) <= SHOW(3); -- Caractere na posição 3 da palavra
+LCD_CMDS(8) <= SHOW(4); -- Caractere na posição 4 da palavra
+LCD_CMDS(9) <= SHOW(5); -- Caractere na posição 5 da palavra
+LCD_CMDS(10) <= SHOW(6); -- Caractere na posição 6 da palavra
 
-oneusclk <= clkcount(5);                                                -- pulso 1us gerado a partir do bit 5 do contador
+LCD_CMDS(11) <= "1000100000"; -- Caractere/comando fixo
+LCD_CMDS(12) <= "10"&"0011"&(STD_LOGIC_VECTOR(ERROCOUNT)); -- Exibe o contador de erros
+LCD_CMDS(13) <= "00"&X"02"; -- Return Home
 
--- contador para delays, resetado quando delayok=1
-process(oneusclk, delayok)
-begin
-    if rising_edge(oneusclk) then
-        if delayok = '1' then
-            count <= (others => '0');
-        else
-            count <= count + 1;
-        end if;
-    end if;
-end process;
+-- Instanciação do componente do teclado PS/2
+KBC: KB_CODE PORT MAP (CLK, RST, PS2D, PS2C, LIBERABUF, KEYBUFFER, BUFEMPTY);
 
--- indica quando terminou de enviar todos os comandos para o lcd
-writedone <= '1' when lcd_cmd_ptr = lcd_cmds'high else '0';
+-- Processo para gerar um clock de 1us a partir do clock principal
+PROCESS (CLK, ONEUSCLK)
+BEGIN
+    IF (CLK = '1' AND CLK'EVENT) THEN -- Borda de subida do CLK principal
+        CLKCOUNT <= CLKCOUNT + 1; -- Incrementa o contador
+    END IF;
+END PROCESS;
 
--- controla o ponteiro dos comandos lcd (lcd_cmd_ptr)
-process(lcd_cmd_ptr, oneusclk)
-begin
-    if rising_edge(oneusclk) then
-        if (stnext = stinitdne or stnext = stdisplayctrlset or stnext = stdisplayclear) and writedone = '0' then
-            lcd_cmd_ptr <= lcd_cmd_ptr + 1;                                            -- passa para próximo comando
-        elsif stcur = stpoweron_delay or stnext = stpoweron_delay then
-            lcd_cmd_ptr <= 0;                                                          -- reseta ponteiro no reset inicial
-        elsif teclou = '1' then
-            lcd_cmd_ptr <= 3;                                                          -- comando específico quando tecla foi pressionada
-        else
-            lcd_cmd_ptr <= lcd_cmd_ptr;                                                -- mantém ponteiro
-        end if;
-    end if;
-end process;
+-- Atribuição do sinal ONEUSCLK (bit 5 do CLKCOUNT, para um clock mais lento)
+ONEUSCLK <= CLKCOUNT(5);
 
--- sinal delayok ativo quando contagem atingir valores específicos de delay por estado
-delayok <= '1' when (
-    (stcur = stpoweron_delay and count = "00100111001010010") or   
-    (stcur = stfunctionset_delay and count = "00000000000110010") or
-    (stcur = stdisplayctrlset_delay and count = "00000000000110010") or
-    (stcur = stdisplayclear_delay and count = "00000011001000000") or
-    (stcur = stchardelay and count = "11111111111111111")
-) else '0';
+-- Processo para controlar o contador de atraso (COUNT)
+PROCESS (ONEUSCLK, DELAYOK)
+BEGIN
+    IF (ONEUSCLK = '1' AND ONEUSCLK'EVENT) THEN -- Borda de subida do clock de 1us
+        IF DELAYOK = '1' THEN -- Se o atraso foi atingido, reseta o contador
+            COUNT <= "00000000000000000";
+        ELSE
+            COUNT <= COUNT + 1; -- Caso contrário, incrementa
+        END IF;
+    END IF;
+END PROCESS;
 
--- máquina principal do lcd: controla sequência de comandos e delays
-process(oneusclk, rst)
-begin
-    if rising_edge(oneusclk) then
-        if rst = '1' then
-            stcur <= stpoweron_delay;                                                 -- estado inicial no reset
-        else
-            stcur <= stnext;                                                          -- avança para próximo estado
-        end if;
-    end if;
-end process;
+-- Sinal que indica se todos os comandos iniciais do LCD foram escritos
+WRITEDONE <= '1' WHEN (LCD_CMD_PTR = LCD_CMDS'HIGH) 
+ELSE '0';
 
--- controle da saída de sinais para o lcd conforme o estado da máquina principal
-process(stcur, delayok, writedone, lcd_cmd_ptr)
-begin
-    case stcur is
-        when stpoweron_delay =>
-            if delayok = '1' then
-                stnext <= stfunctionset;                                                          -- após delay inicial vai para função set
-            else
-                stnext <= stpoweron_delay;
-            end if;
-            -- sinaliza para o lcd os bits do comando atual
-            rs <= lcd_cmds(lcd_cmd_ptr)(9);
-            rw <= lcd_cmds(lcd_cmd_ptr)(8);
-            lcd_db <= lcd_cmds(lcd_cmd_ptr)(7 downto 0);
-            activatew <= '0'; -- desativa escrita neste estado
+-- Processo para controlar o ponteiro de comandos do LCD (LCD_CMD_PTR)
+PROCESS (LCD_CMD_PTR, ONEUSCLK)
+BEGIN
+    IF (ONEUSCLK = '1' AND ONEUSCLK'EVENT) THEN -- Borda de subida do clock de 1us
+        -- Avança o ponteiro se o estado atual é de inicialização ou escrita de comando/caractere
+        IF ((STNEXT = STINITDNE OR STNEXT = STDISPLAYCTRLSET OR STNEXT = STDISPLAYCLEAR) AND WRITEDONE = '0') THEN 
+            LCD_CMD_PTR <= LCD_CMD_PTR + 1;
+        -- Reseta o ponteiro se estiver no atraso de power-on
+        ELSIF STCUR = STPOWERON_DELAY OR STNEXT = STPOWERON_DELAY THEN
+            LCD_CMD_PTR <= 0;
+        -- Se uma tecla foi pressionada, retorna o ponteiro para o comando "Return Home"
+        -- Isso força a reexibição da palavra atualizada
+        ELSIF TECLOU = '1' THEN
+            LCD_CMD_PTR <= 3; -- Comando "Return Home" (posição 3 no LCD_CMDS)
+        ELSE
+            LCD_CMD_PTR <= LCD_CMD_PTR; -- Mantém o ponteiro no mesmo lugar
+        END IF;
+    END IF;
+END PROCESS;
 
-        when stfunctionset =>
-            rs <= lcd_cmds(lcd_cmd_ptr)(9);
-            rw <= lcd_cmds(lcd_cmd_ptr)(8);
-            lcd_db <= lcd_cmds(lcd_cmd_ptr)(7 downto 0);
-            activatew <= '1';	-- ativa escrita
-            stnext <= stfunctionset_delay;
+-- Lógica para determinar se o atraso necessário foi atingido para cada estado
+DELAYOK <= '1' WHEN ((STCUR = STPOWERON_DELAY AND COUNT = "00100111001010010") OR   -- Atraso de 20ms
+                     (STCUR = STFUNCTIONSET_DELAY AND COUNT = "00000000000110010") OR -- Atraso de 40us
+                     (STCUR = STDISPLAYCTRLSET_DELAY AND COUNT = "00000000000110010") OR -- Atraso de 40us
+                     (STCUR = STDISPLAYCLEAR_DELAY AND COUNT = "00000011001000000") OR -- Atraso de 1.64ms
+                     (STCUR = STCHARDELAY AND COUNT = "11111111111111111")) -- Atraso para escrita de caractere (longo o suficiente)
+               ELSE '0';
 
-        when stfunctionset_delay =>
-            rs <= lcd_cmds(lcd_cmd_ptr)(9);
-            rw <= lcd_cmds(lcd_cmd_ptr)(8);
-            lcd_db <= lcd_cmds(lcd_cmd_ptr)(7 downto 0);
-            activatew <= '0'; -- desativa escrita para aguardar delay
-            if delayok = '1' then
-                stnext <= stdisplayctrlset;
-            else
-                stnext <= stfunctionset_delay;
-            end if;
+-- Processo da Máquina de Estados de Controle do LCD
+PROCESS (ONEUSCLK, RST)
+BEGIN
+    IF ONEUSCLK = '1' AND ONEUSCLK'EVENT THEN -- Borda de subida do clock de 1us
+        IF RST = '1' THEN -- Reset assíncrono
+            STCUR <= STPOWERON_DELAY; -- Inicia no estado de atraso de power-on
+        ELSE
+            STCUR <= STNEXT; -- Transiciona para o próximo estado
+        END IF;
+    END IF;
+END PROCESS;
 
-        when stdisplayctrlset =>
-            rs <= lcd_cmds(lcd_cmd_ptr)(9);
-            rw <= lcd_cmds(lcd_cmd_ptr)(8);
-            lcd_db <= lcd_cmds(lcd_cmd_ptr)(7 downto 0);
-            activatew <= '1'; -- ativa escrita
-            stnext <= stdisplayctrlset_delay;
+-- Processo para gerar a sequência necessária para escrever no LCD (saídas RS, RW, LCD_DB)
+PROCESS (STCUR, DELAYOK, WRITEDONE, LCD_CMD_PTR)
+BEGIN   
+    -- Valores padrão para as saídas (importante para evitar latches)
+    RS <= LCD_CMDS(LCD_CMD_PTR)(9);
+    RW <= LCD_CMDS(LCD_CMD_PTR)(8);
+    LCD_DB <= LCD_CMDS(LCD_CMD_PTR)(7 DOWNTO 0);
+    ACTIVATEW <= '0'; -- Por padrão, não ativa a escrita
 
-        when stdisplayctrlset_delay =>
-            rs <= lcd_cmds(lcd_cmd_ptr)(9);
-            rw <= lcd_cmds(lcd_cmd_ptr)(8);
-            lcd_db <= lcd_cmds(lcd_cmd_ptr)(7 downto 0);
-            activatew <= '0'; -- espera delay
-            if delayok = '1' then
-                stnext <= stdisplayclear;
-            else
-                stnext <= stdisplayctrlset_delay;
-            end if;
+    CASE STCUR IS
+        -- Atrasa a máquina de estados em 20ms (tempo para o LCD inicializar)
+        WHEN STPOWERON_DELAY =>
+            IF DELAYOK = '1' THEN -- Se o atraso terminou
+                STNEXT <= STFUNCTIONSET; -- Vai para o Function Set
+            ELSE
+                STNEXT <= STPOWERON_DELAY; -- Continua atrasando
+            END IF;
+            -- Saídas já definidas antes do CASE
 
-        when stdisplayclear	=>
-            rs <= lcd_cmds(lcd_cmd_ptr)(9);
-            rw <= lcd_cmds(lcd_cmd_ptr)(8);
-            lcd_db <= lcd_cmds(lcd_cmd_ptr)(7 downto 0);
-            activatew <= '1'; -- ativa escrita
-            stnext <= stdisplayclear_delay;
+        WHEN STFUNCTIONSET =>
+            ACTIVATEW <= '1';   -- Ativa a escrita para enviar o comando
+            STNEXT <= STFUNCTIONSET_DELAY; -- Vai para o estado de atraso
+            -- Saídas já definidas antes do CASE
 
-        when stdisplayclear_delay =>
-            rs <= lcd_cmds(lcd_cmd_ptr)(9);
-            rw <= lcd_cmds(lcd_cmd_ptr)(8);
-            lcd_db <= lcd_cmds(lcd_cmd_ptr)(7 downto 0);
-            activatew <= '0'; -- espera delay
-            if delayok = '1' then
-                stnext <= stinitdne;
-            else
-                stnext <= stdisplayclear_delay;
-            end if;
+        --- DELAY após Function Set
+        WHEN STFUNCTIONSET_DELAY =>
+            IF DELAYOK = '1' THEN -- Se o atraso terminou
+                STNEXT <= STDISPLAYCTRLSET; -- Vai para o Display Control Set
+            ELSE
+                STNEXT <= STFUNCTIONSET_DELAY; -- Continua atrasando
+            END IF;
+            -- Saídas já definidas antes do CASE
 
-        when stinitdne =>		
-            rs <= lcd_cmds(lcd_cmd_ptr)(9);
-            rw <= lcd_cmds(lcd_cmd_ptr)(8);
-            lcd_db <= lcd_cmds(lcd_cmd_ptr)(7 downto 0);
-            activatew <= '0';
-            stnext <= stactwr;
+        -- Envia o comando Display Control Set (Display ON, Cursor OFF, Blink OFF)
+        WHEN STDISPLAYCTRLSET =>
+            ACTIVATEW <= '1';
+            STNEXT <= STDISPLAYCTRLSET_DELAY;
+            -- Saídas já definidas antes do CASE
 
-        when stactwr =>		
-            rs <= lcd_cmds(lcd_cmd_ptr)(9);
-            rw <= lcd_cmds(lcd_cmd_ptr)(8);
-            lcd_db <= lcd_cmds(lcd_cmd_ptr)(7 downto 0);
-            activatew <= '1'; -- ativa escrita do caractere
-            stnext <= stchardelay;
+        WHEN STDISPLAYCTRLSET_DELAY =>
+            IF DELAYOK = '1' THEN
+                STNEXT <= STDISPLAYCLEAR;
+            ELSE
+                STNEXT <= STDISPLAYCTRLSET_DELAY;
+            END IF;
+            -- Saídas já definidas antes do CASE
 
-        when stchardelay =>
-            rs <= lcd_cmds(lcd_cmd_ptr)(9);
-            rw <= lcd_cmds(lcd_cmd_ptr)(8);
-            lcd_db <= lcd_cmds(lcd_cmd_ptr)(7 downto 0);
-            activatew <= '0';	-- espera delay		
-            if delayok = '1' then
-                stnext <= stinitdne; -- volta para enviar próximo caractere
-            else
-                stnext <= stchardelay;
-            end if;
-    end case;
-end process;					
+        WHEN STDISPLAYCLEAR =>
+            ACTIVATEW <= '1';
+            STNEXT <= STDISPLAYCLEAR_DELAY;
+            -- Saídas já definidas antes do CASE
 
--- máquina de controle do pulso OE (output enable) para lcd
-process(oneusclk, rst)
-begin
-    if rising_edge(oneusclk) then
-        if rst = '1' then
-            stcurw <= stidle; -- reset da máquina de escrita
-        else
-            stcurw <= stnextw; -- avança estado
-        end if;
-    end if;
-end process;
+        WHEN STDISPLAYCLEAR_DELAY =>
+            IF DELAYOK = '1' THEN
+                STNEXT <= STINITDNE; -- Inicialização concluída
+            ELSE
+                STNEXT <= STDISPLAYCLEAR_DELAY;
+            END IF;
+            -- Saídas já definidas antes do CASE
 
-process(stcurw, activatew)
-begin   
-    case stcurw is
-        when strw =>
-            oe <= '0'; -- desabilita saída para setup
-            stnextw <= stenable;
-        when stenable => 
-            oe <= '0'; -- mantem saída desabilitada durante escrita
-            stnextw <= stidle;
-        when stidle =>
-            oe <= '1'; -- ativa saída lcd
-            if activatew = '1' then
-                stnextw <= strw; -- se precisa escrever, volta para início
-            else
-                stnextw <= stidle; -- fica aguardando
-            end if;
-    end case;
-end process;
+        WHEN STINITDNE =>       
+            -- Estado onde o LCD está pronto e espera por comandos/dados
+            STNEXT <= STACTWR; -- Transiciona para ativar a escrita
+            -- Saídas já definidas antes do CASE
 
---- lógica do jogo da forca (atualiza palavra oculta e erros)
-process(rst, oneusclk, teclou, keyread)
-begin
-    -- inicializa palavra oculta e reseta contador de erros
-    if rst = '1' then
-        show <= (others => "10" & x"2e"); -- pontos para ocultar palavra
-        errocount <= (others => '0');
+        WHEN STACTWR =>     
+            -- Ativa a escrita de um caractere ou comando
+            ACTIVATEW <= '1';
+            STNEXT <= STCHARDELAY; -- Vai para o atraso de caractere
+            -- Saídas já definidas antes do CASE
 
-    elsif rising_edge(oneusclk) then
-        -- se errou mais que 3 vezes (limite), mostra "HAHAHA"
-        if errocount >= 3 then
-            show(0) <= "10"&x"4D"; -- M
-            show(1) <= "10"&x"4F"; -- O
-            show(2) <= "10"&x"52"; -- R
-            show(3) <= "10"&x"52"; -- R
-            show(4) <= "10"&x"45"; -- E
-            show(5) <= "10"&x"55"; -- U
+        WHEN STCHARDELAY =>
+            -- Atraso após a escrita de um caractere/comando
+            IF DELAYOK = '1' THEN
+                STNEXT <= STINITDNE; -- Retorna para o estado pronto
+            ELSE
+                STNEXT <= STCHARDELAY; -- Continua atrasando
+            END IF;
+            -- Saídas já definidas antes do CASE
+    END CASE;
 
-        elsif teclou = '1' then
-            -- decodifica tecla pressionada e atualiza as letras da palavra "projeto"
-            case keyread is
-                when "01001101" => -- P
-                    show(0) <= "10"&x"50";
-                    show(1 to 5) <= show(1 to 5);
-                when "00101101" => -- R
-                    show(1) <= "10"&x"52";
-                    show(0) <= show(0);
-                    show(2 to 5) <= show(2 to 5);
-                when "01000100" => -- O
-                    show(2) <= "10"&x"4f";
-                    show(0 to 1) <= show(0 to 1);
-                    show(3 to 5) <= show(3 to 5);
-                when "00111011" => -- J
-                    show(3) <= "10"&x"4a";
-                    show(0 to 2) <= show(0 to 2);
-                    show(4 to 5) <= show(4 to 5);
-                when "00100100" => -- E
-                    show(4) <= "10"&x"45";
-                    show(0 to 3) <= show(0 to 3);
-                    show(5) <= show(5);
-                when "00101100" => -- T
-                    show(5) <= "10"&x"54";
-                    show(0 to 4) <= show(0 to 4);
-                when others =>
-                    errocount <= errocount + 1; -- incrementa contador de erros para tecla inválida
-                    show(0 to 5) <= show(0 to 5);
-            end case;
-            leu <= '1';	-- sinaliza que a tecla foi lida e processada
-        else
-            show <= show; -- mantém estado atual se nenhuma tecla pressionada
-        end if;
-    end if;
-end process;
+END PROCESS;                    
 
--- máquina para controle de leitura do buffer do teclado
-process(oneusclk)
-begin
-    if rising_edge(oneusclk) then
-        case matual is
-            when minicial =>
-                if bufempty = '0' then -- buffer com dados para ler
-                    matual <= mmeio;
-                end if;
+-- Processo da Máquina de Estados de Controle de Escrita (pulso de Enable)
+PROCESS (ONEUSCLK, RST)
+BEGIN
+    IF ONEUSCLK = '1' AND ONEUSCLK'EVENT THEN -- Borda de subida do clock de 1us
+        IF RST = '1' THEN
+            STCURW <= STIDLE; -- Reseta para o estado ocioso
+        ELSE
+            STCURW <= STNEXTW; -- Transiciona para o próximo estado
+        END IF;
+    END IF;
+END PROCESS;
 
-            when mmeio =>
-                if leu = '1' then
-                    matual <= mfinal;
-                end if;
+PROCESS (STCURW, ACTIVATEW)
+BEGIN   
+    OE <= '1'; -- Por padrão, Enable desativado (nível alto)
 
-            when mfinal =>
-                matual <= minicial;
-        end case;
-    end if;
-end process;
+    CASE STCURW IS
+        WHEN STRW =>
+            OE <= '0'; -- Ativa Enable (nível baixo)
+            STNEXTW <= STENABLE; -- Vai para o estado de pulso
+        WHEN STENABLE => 
+            OE <= '0'; -- Mantém Enable ativo
+            STNEXTW <= STIDLE; -- Vai para o estado ocioso após o pulso
+        WHEN STIDLE =>
+            OE <= '1'; -- Desativa Enable
+            IF ACTIVATEW = '1' THEN -- Se a escrita foi ativada
+                STNEXTW <= STRW; -- Inicia a sequência de escrita
+            ELSE
+                STNEXTW <= STIDLE; -- Permanece ocioso
+            END IF;
+    END CASE;
+END PROCESS;
 
--- controle dos sinais de leitura do teclado (liberação e flags)
-process(oneusclk)
-begin
-    if rising_edge(oneusclk) then
-        case matual is
-            when minicial =>
-                liberabuf <= '0'; -- não libera leitura do buffer ainda
-            when mmeio =>
-                teclou <= '1'; -- sinaliza que tecla foi lida
-                keyread <= keybuffer; -- atualiza tecla lida
-            when mfinal =>
-                teclou <= '0'; -- reseta sinalização de tecla lida
-                leu <= '0'; -- reseta sinal de consumo da tecla
-                liberabuf <= '1'; -- libera próxima leitura do buffer
-        end case;
-    end if;
-end process;
 
-end behavioral;
+--- LÓGICA DO JOGO DA FORCA
+PROCESS(RST,ONEUSCLK,TECLOU,KEYREAD)
+BEGIN
+    IF RST = '1' THEN
+        -- No reset, inicializa a palavra com pontos (oculta)
+        SHOW(0) <= "10"&X"2E";
+        SHOW(1) <= "10"&X"2E";
+        SHOW(2) <= "10"&X"2E";
+        SHOW(3) <= "10"&X"2E";
+        SHOW(4) <= "10"&X"2E";
+        SHOW(5) <= "10"&X"2E";
+        SHOW(6) <= "10"&X"2E";
+        ERROCOUNT <= "0000"; -- Reseta o contador de erros
+
+    ELSIF ONEUSCLK = '1' AND ONEUSCLK'EVENT THEN -- Borda de subida do clock de 1us
+        -- Verifica se o número de erros atingiu o limite (7 erros para "PERDEU")
+        IF ERROCOUNT >= 7 THEN
+            -- Se perdeu, exibe a palavra "PERDEU!" no LCD
+            SHOW(0) <= "10"&X"50"; -- P
+            SHOW(1) <= "10"&X"45"; -- E
+            SHOW(2) <= "10"&X"52"; -- R
+            SHOW(3) <= "10"&X"44"; -- D
+            SHOW(4) <= "10"&X"45"; -- E
+            SHOW(5) <= "10"&X"55"; -- U
+            SHOW(6) <= "10"&X"21"; -- ! (Exclamação)
+
+        ELSIF TECLOU = '1' THEN -- Se uma tecla foi pressionada
+        --- A palavra secreta é "SISTEMA"
+            CASE KEYREAD IS
+                WHEN "00011011" =>                  --- Código de varredura PS/2 para 'S'
+                    SHOW(0) <= "10"&X"53";          --- Revela 'S' na posição 0
+                    SHOW(2) <= "10"&X"53";          --- Revela 'S' na posição 2
+                    -- Mantém os outros caracteres como estão
+                    SHOW(1) <= SHOW(1);
+                    SHOW(3 TO 6) <= SHOW(3 TO 6);
+                WHEN "00100011" =>                  --- Código de varredura PS/2 para 'I'
+                    SHOW(1) <= "10"&X"49";          --- Revela 'I' na posição 1
+                    -- Mantém os outros caracteres como estão
+                    SHOW(0) <= SHOW(0);
+                    SHOW(2 TO 6) <= SHOW(2 TO 6);
+                WHEN "00101100" =>                  --- Código de varredura PS/2 para 'T'
+                    SHOW(3) <= "10"&X"54";          --- Revela 'T' na posição 3
+                    -- Mantém os outros caracteres como estão
+                    SHOW(0 TO 2) <= SHOW(0 TO 2);
+                    SHOW(4 TO 6) <= SHOW(4 TO 6);
+                WHEN "00100100" =>                  --- Código de varredura PS/2 para 'E'
+                    SHOW(4) <= "10"&X"45";          --- Revela 'E' na posição 4
+                    -- Mantém os outros caracteres como estão
+                    SHOW(0 TO 3) <= SHOW(0 TO 3);
+                    SHOW(5 TO 6) <= SHOW(5 TO 6);
+                WHEN "00110010" =>                  --- Código de varredura PS/2 para 'M'
+                    SHOW(5) <= "10"&X"4D";          --- Revela 'M' na posição 5
+                    -- Mantém os outros caracteres como estão
+                    SHOW(0 TO 4) <= SHOW(0 TO 4);
+                    SHOW(6) <= SHOW(6);
+                WHEN "00011100" =>                  --- Código de varredura PS/2 para 'A'
+                    SHOW(6) <= "10"&X"41";          --- Revela 'A' na posição 6
+                    -- Mantém os outros caracteres como estão
+                    SHOW(0 TO 5) <= SHOW(0 TO 5);
+                WHEN OTHERS => -- Se a tecla não corresponde a nenhuma letra da palavra
+                    ERROCOUNT <= ERROCOUNT + 1; -- Incrementa o contador de erros
+                    SHOW(0 TO 6)<= SHOW(0 TO 6); -- Mantém a exibição atual
+            END CASE;
+            LEU <= '1'; -- Sinaliza que a tecla foi lida e processada
+    ELSE
+        SHOW<=SHOW; -- Mantém a exibição atual se não houver tecla
+        END IF;
+    END IF;
+END PROCESS;
+
+----------------------------------------------------            
+-- Máquina de Estados para Leitura do Teclado
+PROCESS(ONEUSCLK)
+BEGIN
+    IF ONEUSCLK = '1' AND ONEUSCLK'EVENT THEN -- Borda de subida do clock de 1us
+        CASE MATUAL IS
+            WHEN MINICIAL=> -- Estado inicial: espera por uma tecla
+                IF BUFEMPTY = '0' THEN -- Se o buffer do teclado não está vazio (tem tecla)
+                    MATUAL <= MMEIO; -- Vai para o estado de processamento da tecla
+                END IF;
+
+            WHEN MMEIO => -- Estado intermediário: tecla lida
+                IF LEU <= '1' THEN -- Se a tecla foi processada pela lógica do jogo
+                    MATUAL <= MFINAL; -- Vai para o estado final
+                END IF;
+
+            WHEN MFINAL => -- Estado final: reinicia para esperar a próxima tecla
+                MATUAL <= MINICIAL;
+        END CASE;
+    END IF;
+END PROCESS;
+    ----------------------------------------------------    
+-- Lógica de controle para a Máquina de Estados de Leitura do Teclado
+PROCESS(ONEUSCLK)
+BEGIN
+    IF ONEUSCLK = '1' AND ONEUSCLK'EVENT THEN -- Borda de subida do clock de 1us
+        CASE MATUAL IS
+            WHEN MINICIAL =>
+                LIBERABUF <= '0'; -- Não libera o buffer do teclado (ainda esperando)
+            WHEN MMEIO =>
+                TECLOU <= '1'; -- Sinaliza que uma tecla foi pressionada
+                KEYREAD <= KEYBUFFER; -- Copia o código da tecla do buffer para KEYREAD
+            WHEN MFINAL =>
+                TECLOU <= '0'; -- Reseta o sinal de tecla pressionada
+                LEU<= '0'; -- Reseta o sinal de tecla lida
+                LIBERABUF <= '1'; -- Libera o buffer do teclado para a próxima tecla
+        END CASE;
+    END IF;
+END PROCESS;
+
+
+END BEHAVIORAL;

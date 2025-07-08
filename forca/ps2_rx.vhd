@@ -1,96 +1,96 @@
---  Codigo refatorado de serial_kb_reader.vhd
---
---  Referencia -> https://blog.aku.edu.tr/ismailkoyuncu/files/2017/04/02_ebook.pdf
+LIBRARY IEEE;
+USE IEEE.STD_LOGIC_1164.ALL;
+USE IEEE.NUMERIC_STD.ALL;
+--=================================================
+-- ENTIDADE
+--=================================================
+ENTITY PS2_RX IS
+   PORT (
+      CLK, RESET: IN  STD_LOGIC;
+      PS2D, PS2C: IN  STD_LOGIC;  -- KEY DATA, KEY CLOCK
+      RX_EN: IN STD_LOGIC;
+      RX_DONE_TICK: OUT  STD_LOGIC;
+      DOUT: OUT STD_LOGIC_VECTOR(7 DOWNTO 0)
+   );
+END PS2_RX;
+--=================================================
+-- ARQUITETURA
+--=================================================
+ARCHITECTURE ARCH OF PS2_RX IS
+   TYPE STATETYPE IS (IDLE, DPS, LOAD);
+   SIGNAL STATE_REG, STATE_NEXT: STATETYPE;
+   SIGNAL FILTER_REG, FILTER_NEXT:
+          STD_LOGIC_VECTOR(7 DOWNTO 0);
+   SIGNAL F_PS2C_REG,F_PS2C_NEXT: STD_LOGIC;
+   SIGNAL B_REG, B_NEXT: STD_LOGIC_VECTOR(10 DOWNTO 0);
+   SIGNAL N_REG,N_NEXT: UNSIGNED(3 DOWNTO 0);
+   SIGNAL FALL_EDGE: STD_LOGIC;
+BEGIN
+--=================================================
+-- GERAÇÃO DE FILTRO E FALLING EDGE TICK PARA PS2C
+--=================================================
+   PROCESS (CLK, RESET)
+   BEGIN
+      IF RESET='1' THEN
+         FILTER_REG <= (OTHERS=>'0');
+         F_PS2C_REG <= '0';
+      ELSIF (CLK'EVENT AND CLK='1') THEN
+         FILTER_REG <= FILTER_NEXT;
+         F_PS2C_REG <= F_PS2C_NEXT;
+      END IF;
+   END PROCESS;
 
-library IEEE;
-use IEEE.STD_LOGIC_1164.all;
-use IEEE.NUMERIC_STD.all;
+   FILTER_NEXT <= PS2C & FILTER_REG(7 DOWNTO 1);
+   F_PS2C_NEXT <= '1' WHEN FILTER_REG="11111111" ELSE
+                  '0' WHEN FILTER_REG="00000000" ELSE
+                  F_PS2C_REG;
+   FALL_EDGE <= F_PS2C_REG AND (NOT F_PS2C_NEXT);
 
-entity ps2_rx is
-    port(
-        clk, reset: in std_logic; -- System clock
-        ps2d, ps2c: in std_logic; -- PS/2 data bus and PS/2 clock
-        rx_en: in std_logic;
-
-        rx_done_tick: out std_logic;
-        dout: out std_logic_vector (7 downto 0)
-    );
-end ps2_rx;
-
-architecture arch of ps2_rx is
-
-    type statetype is (idle, dps, load);
-    signal state_reg, state_next: statetype;
-    signal filter_reg, filter_next: std_logic_vector (7 downto 0);
-    signal f_ps2c_reg, f_ps2c_next: std_logic;
-    signal b_reg, b_next: std_logic_vector (10 downto 0);
-    signal n_reg, n_next: unsigned (3 downto 0);
-    signal fall_edge: std_logic;
-
-begin
-
-    -- Filter and tick generation for ps2c
-    process(clk, reset)
-    begin
-        if reset = '1' then
-            filter_reg <= (others => '0');
-            f_ps2c_reg <= '0';
-        elsif (clk'event and clk='1') then
-            filter_reg <= filter_next;
-            f_ps2c_reg <= f_ps2c_next;
-        end if;
-    end process;
-
-    filter_next <= ps2c & filter_reg (7 downto 1);
-    f_ps2c_next <= '1' when filter_reg="11111111" else
-                   '0' when filter_reg="00000000" else
-                    f_ps2c_reg;
-    fall_edge <= f_ps2c_reg and (not f_ps2c_next);
-
-    -- Extract data
-    process(clk, reset)
-    begin
-        if reset='1' then
-            state_reg <= idle;
-            n_reg <= (others=>'0');
-            b_reg <= (others=>'0');
-        elsif (clk'event and clk='1') then
-            state_reg <= state_next;
-            n_reg <= n_next;
-            b_reg <= b_next;
-        end if;
-    end process;
-
-    -- Next-state logic
-    process(state_reg, n_reg, b_reg, fall_edge, rx_en, ps2d)
-    begin
-        rx_done_tick <= '0';
-        state_next <= state_reg;
-        n_next <= n_reg;
-        b_next <= b_reg;
-        case state_reg is
-            when idle =>
-                if fall_edge='1' and rx_en='1' then
-                    b_next <= ps2d & b_reg(10 downto 1);
-                    n_next <="1001";
-                    state_next <= dps;
-                end if;
-            when dps =>
-                if fall_edge='1' then 
-                b_next <= ps2d & b_reg(10 downto 1);
-                    if n_reg = 0 then
-                        state_next <= load;
-                    else
-                        n_next <= n_reg - 1;
-                    end if;
-                end if;
-            when load =>
-                state_next <= idle;
-                rx_done_tick <='1';
-            end case;
-        end process;
-
-    -- Output
-    dout <= b_reg(8 downto 1);
-
-end arch;
+--=================================================
+-- EXTRAIR OS DADOS DE 8 BITS
+--=================================================
+   PROCESS (CLK, RESET)
+   BEGIN
+      IF RESET='1' THEN
+         STATE_REG <= IDLE;
+         N_REG  <= (OTHERS=>'0');
+         B_REG <= (OTHERS=>'0');
+      ELSIF (CLK'EVENT AND CLK='1') THEN
+         STATE_REG <= STATE_NEXT;
+         N_REG <= N_NEXT;
+         B_REG <= B_NEXT;
+      END IF;
+   END PROCESS;
+   -- LOGICA PARA O PROXIMO ESTADO
+   PROCESS(STATE_REG,N_REG,B_REG,FALL_EDGE,RX_EN,PS2D)
+   BEGIN
+      RX_DONE_TICK <='0';
+      STATE_NEXT <= STATE_REG;
+      N_NEXT <= N_REG;
+      B_NEXT <= B_REG;
+      CASE STATE_REG IS
+         WHEN IDLE =>
+            IF FALL_EDGE='1' AND RX_EN='1' THEN
+               -- DESLOCAMENTO NO BIT DE INICIO
+               B_NEXT <= PS2D & B_REG(10 DOWNTO 1);
+               N_NEXT <= "1001";
+               STATE_NEXT <= DPS;
+            END IF;
+         WHEN DPS => 
+            IF FALL_EDGE='1' THEN
+            B_NEXT <= PS2D & B_REG(10 DOWNTO 1);
+               IF N_REG = 0 THEN
+                   STATE_NEXT <=LOAD;
+               ELSE
+                   N_NEXT <= N_REG - 1;
+               END IF;
+            END IF;
+         WHEN LOAD =>
+            -- CLOCK EXTRA PRA COMPLETAR DESLOCAMENTO
+            STATE_NEXT <= IDLE;
+            RX_DONE_TICK <='1';
+      END CASE;
+   END PROCESS;
+   -- OUTPUT
+   DOUT <= B_REG(8 DOWNTO 1); -- BITS DE DADOS
+END ARCH;
